@@ -1,6 +1,5 @@
-
-// --- simple passcode gate ---
-const PASSCODE = 'GemFireEms';
+const GIS_CLIENT_ID = '841013736027-qvvar311ihlv00k08jjpiomn4b0ajj0j.apps.googleusercontent.com';
+let ID_TOKEN = '';
 
 function getSettings() {
   return {
@@ -19,6 +18,8 @@ function buildUrl(qs){
   }
   return base + qs;
 }
+
+// ---------- API Calls ----------
 async function ping(){
   const res = await fetch(buildUrl('?__ping=1'));
   if (!res.ok) throw new Error('Ping failed');
@@ -74,8 +75,8 @@ async function exportPaidCSV(){
   a.click();
 }
 
+// ---------- Render ----------
 function currency(n){ return new Intl.NumberFormat(undefined,{style:'currency', currency:'USD'}).format(n||0); }
-
 function renderResults(list){
   const box = document.getElementById('results');
   if (!list || !list.length) { box.innerHTML = '<p class="muted">No results.</p>'; return; }
@@ -99,7 +100,6 @@ function renderResults(list){
   tbody += '</tbody>';
   box.innerHTML = `<table class="table">${thead}${tbody}</table>`;
 
-  // handlers
   box.querySelectorAll('button[data-toggle]').forEach(btn => {
     btn.addEventListener('click', async (ev) => {
       const tr = ev.target.closest('tr');
@@ -107,7 +107,7 @@ function renderResults(list){
       const isPaid = tr.querySelector('.status .paid') != null;
       try {
         await togglePaid(id, !isPaid);
-        document.getElementById('searchBtn').click(); // refresh
+        document.getElementById('searchBtn').click();
       } catch (e) { alert(e.message); }
     });
   });
@@ -116,7 +116,6 @@ function renderResults(list){
       const tr = ev.target.closest('tr');
       const id = tr.dataset.id;
       const last = tr.dataset.last;
-      // collapse any existing detail row under this one
       const next = tr.nextElementSibling;
       if (next && next.classList.contains('detail-row')) { next.remove(); return; }
       try {
@@ -127,7 +126,6 @@ function renderResults(list){
     });
   });
 }
-
 function buildDetailRow(o){
   const tmpl = document.getElementById('detailTemplate');
   const row = tmpl.content.firstElementChild.cloneNode(true);
@@ -140,13 +138,10 @@ function buildDetailRow(o){
     tr.innerHTML = `<td>${l.sku||''}</td><td>${l.item||''}</td><td>${l.size||''}</td><td>${l.qty||0}</td><td>${l.customName||''}</td><td>${currency(l.unitPrice||0)}</td><td>${currency(l.lineTotal||0)}</td>`;
     tbody.appendChild(tr);
   });
-  const view = row.querySelector('[data-view]');
-  view.href = buildUrl(`?path=lookup&orderId=${encodeURIComponent(o.orderId)}&last=${encodeURIComponent(String(o.last||'').toLowerCase())}`);
-  const btn = row.querySelector('[data-print]');
-  btn.addEventListener('click', () => printPackSlip(o));
+  row.querySelector('[data-view]').href = buildUrl(`?path=lookup&orderId=${encodeURIComponent(o.orderId)}&last=${encodeURIComponent(String(o.last||'').toLowerCase())}`);
+  row.querySelector('[data-print]').addEventListener('click', () => printPackSlip(o));
   return row;
 }
-
 function printPackSlip(o){
   const win = window.open('', '_blank', 'width=800,height=900');
   const lines = (o.lines||[]).map(l => (
@@ -154,43 +149,56 @@ function printPackSlip(o){
   )).join('');
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Pack Slip ${o.orderId}</title>
     <style>
-      body{font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;padding:20px;}
-      h1{margin:0 0 10px;}
-      table{width:100%;border-collapse:collapse;margin-top:10px;}
-      th,td{border-bottom:1px solid #ddd;padding:6px 8px;text-align:left;}
-      .right{text-align:right}
-      .muted{color:#555}
+      body{font-family: system-ui, sans-serif;padding:20px;}
+      table{width:100%;border-collapse:collapse;}
+      th,td{border-bottom:1px solid #ddd;padding:6px 8px;}
     </style>
   </head><body>
     <h1>Packing Ticket</h1>
     <div><strong>Order:</strong> ${o.orderId}</div>
     <div><strong>Name:</strong> ${o.last}, ${o.first}</div>
     <div><strong>Created:</strong> ${new Date(o.created).toLocaleString()}</div>
-    <div class="muted"><strong>Email:</strong> ${o.email||''} — <strong>Phone:</strong> ${o.phone||''}</div>
+    <div><strong>Email:</strong> ${o.email||''} — <strong>Phone:</strong> ${o.phone||''}</div>
     <table><thead><tr><th>Qty</th><th>Size</th><th>Item</th><th>Custom Name</th></tr></thead>
       <tbody>${lines}</tbody>
     </table>
-    <h3 class="right">Total: ${currency(o.total||0)}</h3>
+    <h3 style="text-align:right">Total: ${currency(o.total||0)}</h3>
     <script>window.onload=()=>window.print()</script>
   </body></html>`;
   win.document.write(html);
   win.document.close();
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
-  // passcode gate
-  const app = document.getElementById('app');
-  document.getElementById('passOk').addEventListener('click', () => {
-    const val = (document.getElementById('passcode').value || '').trim();
-    if (val === PASSCODE) {
-      app.classList.remove('hidden');
-      document.getElementById('passMsg').textContent = 'Unlocked.';
+// ---------- Google Sign-In ----------
+function onSignInSuccess(response) {
+  ID_TOKEN = response.credential;
+  fetch(buildUrl(`?path=admin&action=verifyLogin`), {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ idToken: ID_TOKEN })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data && data.allowed) {
+      document.getElementById('loginContainer').classList.add('hidden');
+      document.getElementById('app').classList.remove('hidden');
     } else {
-      document.getElementById('passMsg').textContent = 'Wrong passcode.';
+      alert('Access denied');
     }
-  });
+  })
+  .catch(e => alert('Login check failed: ' + e.message));
+}
 
-  // Load saved settings
+document.addEventListener('DOMContentLoaded', () => {
+  google.accounts.id.initialize({
+    client_id: GIS_CLIENT_ID,
+    callback: onSignInSuccess
+  });
+  google.accounts.id.renderButton(
+    document.getElementById("gsi"),
+    { theme: "outline", size: "large" }
+  );
+
   const s = getSettings();
   document.getElementById('baseUrl').value = s.base;
   document.getElementById('token').value = s.token;
@@ -225,27 +233,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   document.getElementById('lockBtn').addEventListener('click', async () => {
-    try {
-      await setLock(true);
-      const st = await getLockState();
-      document.getElementById('lockState').textContent = st.ordersLocked ? 'Currently: LOCKED' : 'Currently: OPEN';
-    } catch (e) { alert(e.message); }
+    await setLock(true);
+    const st = await getLockState();
+    document.getElementById('lockState').textContent = st.ordersLocked ? 'Currently: LOCKED' : 'Currently: OPEN';
   });
   document.getElementById('unlockBtn').addEventListener('click', async () => {
-    try {
-      await setLock(false);
-      const st = await getLockState();
-      document.getElementById('lockState').textContent = st.ordersLocked ? 'Currently: LOCKED' : 'Currently: OPEN';
-    } catch (e) { alert(e.message); }
+    await setLock(false);
+    const st = await getLockState();
+    document.getElementById('lockState').textContent = st.ordersLocked ? 'Currently: LOCKED' : 'Currently: OPEN';
   });
 
   document.getElementById('refreshTotals').addEventListener('click', async () => {
-    try {
-      const p = await paidTotals();
-      document.getElementById('paidSum').textContent = 'Paid Sum: ' + currency(p.sum||0);
-      document.getElementById('paidCount').textContent = 'Paid Orders: ' + (p.count||0);
-      document.getElementById('totalsBreakdown').textContent = (p.byLast||[]).map(x => `${x.last}: ${currency(x.total)}`).join('  |  ');
-    } catch (e) { alert(e.message); }
+    const p = await paidTotals();
+    document.getElementById('paidSum').textContent = 'Paid Sum: ' + currency(p.sum||0);
+    document.getElementById('paidCount').textContent = 'Paid Orders: ' + (p.count||0);
+    document.getElementById('totalsBreakdown').textContent = (p.byLast||[]).map(x => `${x.last}: ${currency(x.total)}`).join('  |  ');
   });
 
   document.getElementById('exportPaid').addEventListener('click', exportPaidCSV);
