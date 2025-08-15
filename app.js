@@ -3,7 +3,7 @@ const BASE = 'https://script.google.com/macros/s/AKfycbyUVS_fgzCDUfGMFnXTA8do80d
 
 const ENDPOINT_SUBMIT = `${BASE}`;
 const ENDPOINT_LOOKUP = `${BASE}?path=lookup`;
-const ENDPOINT_ITEMS  = `${BASE}?path=items`;MFnXTA8do80dK2OtDZwrhgKYNPidyxpGQtfWaPzZhGsBP4P-k2Ua5Ww/exec?path=items';
+const ENDPOINT_ITEMS  = `${BASE}?path=items`;
 
 
 let ITEMS = [];
