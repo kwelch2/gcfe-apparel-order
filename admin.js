@@ -1,15 +1,16 @@
+/******** CONFIG ********/
 const GIS_CLIENT_ID = '841013736027-qvvar311ihlv00k08jjpiomn4b0ajj0j.apps.googleusercontent.com';
+
 let ID_TOKEN = '';
 
+/******** SETTINGS ********/
 function getSettings() {
   return {
-    base: localStorage.getItem('admin_base') || '',
-    token: localStorage.getItem('admin_token') || ''
+    base: localStorage.getItem('admin_base') || ''
   };
 }
-function setSettings(base, token){
-  localStorage.setItem('admin_base', base.trim());
-  localStorage.setItem('admin_token', token.trim());
+function setSettings(base){
+  localStorage.setItem('admin_base', (base||'').trim());
 }
 function buildUrl(qs){
   const { base } = getSettings();
@@ -19,53 +20,54 @@ function buildUrl(qs){
   return base + qs;
 }
 
-// ---------- API Calls ----------
+/******** AUTHED FETCH ********/
+function authFetch(url, options = {}) {
+  if (!ID_TOKEN) throw new Error('Not signed in.');
+  const headers = Object.assign({}, options.headers || {}, { 'Authorization': 'Bearer ' + ID_TOKEN });
+  return fetch(url, Object.assign({}, options, { headers }));
+}
+
+/******** API CALLS (ADMIN) ********/
 async function ping(){
-  const res = await fetch(buildUrl('?__ping=1'));
+  const res = await fetch(buildUrl('?__ping=1')); // public
   if (!res.ok) throw new Error('Ping failed');
   return res.text();
 }
 async function getLockState(){
-  const { token } = getSettings();
-  const res = await fetch(buildUrl(`?path=admin&action=getState&token=${encodeURIComponent(token)}`));
+  const res = await authFetch(buildUrl(`?path=admin&action=getState`));
   if (!res.ok) throw new Error('State check failed');
   return res.json();
 }
 async function setLock(lock){
-  const { token } = getSettings();
   const action = lock ? 'lockOrders' : 'unlockOrders';
-  const res = await fetch(buildUrl(`?path=admin&action=${action}&token=${encodeURIComponent(token)}`));
+  const res = await authFetch(buildUrl(`?path=admin&action=${action}`));
   if (!res.ok) throw new Error('Toggle failed');
   return res.json();
 }
 async function searchOrders(q, paidFilter, fromDate, toDate){
-  const { token } = getSettings();
-  const url = buildUrl(`?path=admin&action=search&q=${encodeURIComponent(q)}&paid=${encodeURIComponent(paidFilter||'')}&from=${encodeURIComponent(fromDate||'')}&to=${encodeURIComponent(toDate||'')}&token=${encodeURIComponent(token)}`);
-  const res = await fetch(url);
+  const url = buildUrl(`?path=admin&action=search&q=${encodeURIComponent(q)}&paid=${encodeURIComponent(paidFilter||'')}&from=${encodeURIComponent(fromDate||'')}&to=${encodeURIComponent(toDate||'')}`);
+  const res = await authFetch(url);
   if (!res.ok) throw new Error('Search failed');
   return res.json();
 }
 async function togglePaid(orderId, paid){
-  const { token } = getSettings();
   const action = paid ? 'markPaid' : 'markUnpaid';
-  const res = await fetch(buildUrl(`?path=admin&action=${action}&orderId=${encodeURIComponent(orderId)}&token=${encodeURIComponent(token)}`));
+  const res = await authFetch(buildUrl(`?path=admin&action=${action}&orderId=${encodeURIComponent(orderId)}`));
   if (!res.ok) throw new Error('Paid toggle failed');
   return res.json();
 }
-async function getOrder(orderId, lastLower){
+async function getOrder(orderId, lastLower){ // public lookup
   const res = await fetch(buildUrl(`?path=lookup&orderId=${encodeURIComponent(orderId)}&last=${encodeURIComponent(lastLower)}`));
   if (!res.ok) throw new Error('Lookup failed');
   return res.json();
 }
 async function paidTotals(){
-  const { token } = getSettings();
-  const res = await fetch(buildUrl(`?path=admin&action=paidTotals&token=${encodeURIComponent(token)}`));
+  const res = await authFetch(buildUrl(`?path=admin&action=paidTotals`));
   if (!res.ok) throw new Error('Totals failed');
   return res.json();
 }
 async function exportPaidCSV(){
-  const { token } = getSettings();
-  const res = await fetch(buildUrl(`?path=admin&action=exportPaidCSV&token=${encodeURIComponent(token)}`));
+  const res = await authFetch(buildUrl(`?path=admin&action=exportPaidCSV`));
   if (!res.ok) throw new Error('Export failed');
   const text = await res.text();
   const blob = new Blob([text], { type: 'text/csv' });
@@ -75,8 +77,9 @@ async function exportPaidCSV(){
   a.click();
 }
 
-// ---------- Render ----------
+/******** RENDER ********/
 function currency(n){ return new Intl.NumberFormat(undefined,{style:'currency', currency:'USD'}).format(n||0); }
+
 function renderResults(list){
   const box = document.getElementById('results');
   if (!list || !list.length) { box.innerHTML = '<p class="muted">No results.</p>'; return; }
@@ -100,6 +103,7 @@ function renderResults(list){
   tbody += '</tbody>';
   box.innerHTML = `<table class="table">${thead}${tbody}</table>`;
 
+  // handlers
   box.querySelectorAll('button[data-toggle]').forEach(btn => {
     btn.addEventListener('click', async (ev) => {
       const tr = ev.target.closest('tr');
@@ -126,6 +130,7 @@ function renderResults(list){
     });
   });
 }
+
 function buildDetailRow(o){
   const tmpl = document.getElementById('detailTemplate');
   const row = tmpl.content.firstElementChild.cloneNode(true);
@@ -142,6 +147,7 @@ function buildDetailRow(o){
   row.querySelector('[data-print]').addEventListener('click', () => printPackSlip(o));
   return row;
 }
+
 function printPackSlip(o){
   const win = window.open('', '_blank', 'width=800,height=900');
   const lines = (o.lines||[]).map(l => (
@@ -169,9 +175,11 @@ function printPackSlip(o){
   win.document.close();
 }
 
-// ---------- Google Sign-In ----------
+/******** GOOGLE SIGN-IN (button render with safe polling) ********/
 function onSignInSuccess(response) {
   ID_TOKEN = response.credential;
+
+  // Verify against backend allowlist (optional but nice UX)
   fetch(buildUrl(`?path=admin&action=verifyLogin`), {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
@@ -180,33 +188,38 @@ function onSignInSuccess(response) {
   .then(r => r.json())
   .then(data => {
     if (data && data.allowed) {
-      document.getElementById('loginContainer').classList.add('hidden');
+      document.getElementById('login').classList.add('hidden');
       document.getElementById('app').classList.remove('hidden');
     } else {
-      alert('Access denied');
+      document.getElementById('loginMsg').textContent = 'Access denied for this Google account.';
     }
   })
-  .catch(e => alert('Login check failed: ' + e.message));
+  .catch(e => {
+    document.getElementById('loginMsg').textContent = 'Login check failed: ' + e.message;
+  });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  google.accounts.id.initialize({
-    client_id: GIS_CLIENT_ID,
-    callback: onSignInSuccess
-  });
-  google.accounts.id.renderButton(
-    document.getElementById("gsi"),
-    { theme: "outline", size: "large" }
-  );
+// Render the Google button after the GIS library actually loads.
+function renderGsiButton() {
+  if (window.google && google.accounts && google.accounts.id) {
+    google.accounts.id.initialize({ client_id: GIS_CLIENT_ID, callback: onSignInSuccess });
+    google.accounts.id.renderButton(document.getElementById('gsi'), { theme: 'outline', size: 'large' });
+    // Optional One Tap:
+    // google.accounts.id.prompt();
+  } else {
+    setTimeout(renderGsiButton, 200); // wait for the async script
+  }
+}
 
+/******** BOOT ********/
+document.addEventListener('DOMContentLoaded', () => {
+  // Load saved URL (auto-fill if you want)
   const s = getSettings();
   document.getElementById('baseUrl').value = s.base;
-  document.getElementById('token').value = s.token;
 
   document.getElementById('saveConn').addEventListener('click', () => {
     const base = document.getElementById('baseUrl').value;
-    const token = document.getElementById('token').value;
-    setSettings(base, token);
+    setSettings(base);
     document.getElementById('connMsg').textContent = 'Saved.';
   });
 
@@ -251,4 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('exportPaid').addEventListener('click', exportPaidCSV);
+
+  // Kick off Google button rendering
+  renderGsiButton();
 });
