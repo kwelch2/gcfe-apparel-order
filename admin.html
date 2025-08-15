@@ -1,54 +1,69 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin Dashboard</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Order Admin</title>
   <link rel="stylesheet" href="admin.css" />
+  <!-- Google Identity Services -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
-  <div id="loginContainer">
+  <!-- Login -->
+  <section id="login" style="max-width:600px;margin:48px auto;text-align:center;">
     <h2>Admin Login</h2>
-    <div id="gsi"></div>
-  </div>
+    <div id="gsi" style="display:inline-block;margin-top:12px;"></div>
+    <div id="loginMsg" class="muted" style="margin-top:8px;"></div>
+  </section>
 
-  <div id="app" class="hidden">
+  <!-- App -->
+  <main id="app" class="hidden" style="max-width:1100px;margin:0 auto;padding:16px;">
     <h1>Order Admin Dashboard</h1>
 
-    <div class="conn">
-      <label>Base URL: <input type="text" id="baseUrl"></label>
-      <label>Token: <input type="text" id="token"></label>
-      <button id="saveConn">Save</button>
-      <button id="testConn">Test Connection</button>
-      <span id="connMsg" class="muted"></span>
-      <p id="lockState"></p>
-      <button id="lockBtn">Lock Orders</button>
-      <button id="unlockBtn">Unlock Orders</button>
-    </div>
+    <section class="card">
+      <h3>Connection</h3>
+      <div>
+        <label>Apps Script Base URL (ends with <code>/exec</code>)
+          <input id="baseUrl" style="width:100%" placeholder="https://script.google.com/macros/s/AKfycb.../exec">
+        </label>
+      </div>
+      <div style="margin-top:8px;">
+        <button id="saveConn" class="btn">Save</button>
+        <button id="testConn" class="btn">Test</button>
+        <span id="connMsg" class="muted"></span>
+      </div>
+      <div style="margin-top:8px;">
+        <button id="lockBtn" class="btn danger">Lock Orders</button>
+        <button id="unlockBtn" class="btn">Unlock Orders</button>
+        <span id="lockState" class="muted"></span>
+      </div>
+    </section>
 
-    <div class="search">
-      <input type="text" id="query" placeholder="Search orders...">
-      <select id="paidFilter">
-        <option value="">All</option>
-        <option value="true">Paid</option>
-        <option value="false">Unpaid</option>
-      </select>
-      <input type="date" id="fromDate">
-      <input type="date" id="toDate">
-      <button id="searchBtn">Search</button>
-    </div>
+    <section class="card">
+      <h3>Search</h3>
+      <div>
+        <input id="query" placeholder="Order ID (A123456) or last name" />
+        <select id="paidFilter">
+          <option value="">All</option>
+          <option value="paid">Paid</option>
+          <option value="unpaid">Unpaid</option>
+        </select>
+        <input id="fromDate" type="date" />
+        <input id="toDate" type="date" />
+        <button id="searchBtn" class="btn">Search</button>
+        <button id="exportPaid" class="btn">Export Paid CSV</button>
+      </div>
+      <div id="results" style="margin-top:10px;"></div>
+    </section>
 
-    <div id="results"></div>
-
-    <div class="totals">
-      <button id="refreshTotals">Refresh Paid Totals</button>
-      <p id="paidSum"></p>
-      <p id="paidCount"></p>
-      <p id="totalsBreakdown"></p>
-      <button id="exportPaid">Export Paid CSV</button>
-    </div>
-  </div>
+    <section class="card">
+      <h3>Paid Totals</h3>
+      <button id="refreshTotals" class="btn">Refresh</button>
+      <span id="paidSum" class="badge total"></span>
+      <span id="paidCount" class="badge"></span>
+      <div id="totalsBreakdown" class="muted" style="margin-top:6px;"></div>
+    </section>
+  </main>
 
   <template id="detailTemplate">
     <tr class="detail-row">
@@ -57,12 +72,14 @@
         <div><strong>Email:</strong> <span class="email"></span> — <strong>Phone:</strong> <span class="phone"></span></div>
         <table class="table">
           <thead>
-            <tr><th>SKU</th><th>Item</th><th>Size</th><th>Qty</th><th>Custom Name</th><th>Unit Price</th><th>Line Total</th></tr>
+            <tr><th>SKU</th><th>Item</th><th>Size</th><th>Qty</th><th>Custom Name</th><th>Unit</th><th>Line</th></tr>
           </thead>
           <tbody class="lines"></tbody>
         </table>
-        <a data-view target="_blank">View Online</a>
-        <button data-print>Print Packing Slip</button>
+        <div style="margin-top:8px;">
+          <a data-view target="_blank" class="btn">View (public)</a>
+          <button data-print class="btn">Print Pack Slip</button>
+        </div>
       </td>
     </tr>
   </template>
