@@ -127,10 +127,10 @@ async function submitOrder() {
   btn.disabled = true;
   try {
     const res = await fetch(ENDPOINT_SUBMIT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+  method: 'POST',
+  headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // <-- important
+  body: JSON.stringify(payload)
+});
     if (!res.ok) throw new Error('Submit failed.');
     const data = await res.json(); // { orderId, statusUrl }
     document.getElementById('submitMsg').textContent =
