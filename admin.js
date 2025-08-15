@@ -194,27 +194,26 @@ function onSignInSuccess(response) {
   msg.textContent = 'Signing in…';
 
   let url;
-  try { url = buildUrl(`?path=admin&action=verifyLogin`); }
-  catch (e) { msg.textContent = 'Base URL missing/invalid. Enter it and click Save.'; return; }
+  try {
+    url = buildUrl(`?path=admin&action=verifyLogin&idToken=${encodeURIComponent(ID_TOKEN)}`);
+  } catch (e) {
+    msg.textContent = 'Base URL missing/invalid. Enter it and click Save.';
+    return;
+  }
 
-  fetch(url, {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({ idToken: ID_TOKEN })
-  })
-  .then(r => r.json())
-  .then(data => {
-    if (data && data.allowed) {
-      msg.textContent = 'Signed in as ' + (data.email || '');
-      document.getElementById('login').classList.add('hidden');
-      document.getElementById('app').classList.remove('hidden');
-      // Kick an initial test
-      document.getElementById('testConn').click();
-    } else {
-      msg.textContent = 'Access denied for this Google account.';
-    }
-  })
-  .catch(e => { msg.textContent = 'Login check failed: ' + e.message; });
+  fetch(url)               // GET -> no preflight -> no CORS headache
+    .then(r => r.json())
+    .then(data => {
+      if (data && data.allowed) {
+        msg.textContent = 'Signed in as ' + (data.email || '');
+        document.getElementById('login').classList.add('hidden');
+        document.getElementById('app').classList.remove('hidden');
+        document.getElementById('testConn').click(); // optional kick-off
+      } else {
+        msg.textContent = 'Access denied for this Google account.';
+      }
+    })
+    .catch(e => { msg.textContent = 'Login check failed: ' + e.message; });
 }
 
 function renderGsiButton() {
