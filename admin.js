@@ -1,16 +1,29 @@
 /******** CONFIG ********/
+// Your Google OAuth Client ID (you provided this)
 const GIS_CLIENT_ID = '841013736027-qvvar311ihlv00k08jjpiomn4b0ajj0j.apps.googleusercontent.com';
+
+// Optional: set your /exec here so the page works without typing it.
+// Or pass it via URL like .../admin.html?base=https://script.google.com/macros/s/XXXX/exec
+const DEFAULT_BASE  = 'https://script.google.com/macros/s/AKfycbyUVS_fgzCDUfGMFnXTA8do80dK2OtDZwrhgKYNPidyxpGQtfWaPzZhGsBP4P-k2Ua5Ww/exec'; // e.g., 'https://script.google.com/macros/s/AKfycb.../exec'
 
 let ID_TOKEN = '';
 
 /******** SETTINGS ********/
 function getSettings() {
-  return {
-    base: localStorage.getItem('admin_base') || ''
-  };
+  return { base: localStorage.getItem('admin_base') || '' };
 }
 function setSettings(base){
   localStorage.setItem('admin_base', (base||'').trim());
+}
+function initBase() {
+  const urlBase = new URL(location.href).searchParams.get('base');
+  const saved   = localStorage.getItem('admin_base');
+  const pick    = urlBase || saved || DEFAULT_BASE;
+  if (pick) {
+    setSettings(pick);
+    const el = document.getElementById('baseUrl');
+    if (el) el.value = pick;
+  }
 }
 function buildUrl(qs){
   const { base } = getSettings();
@@ -20,14 +33,14 @@ function buildUrl(qs){
   return base + qs;
 }
 
-/******** AUTHED FETCH ********/
+/******** AUTHED FETCH (sends Google ID token) ********/
 function authFetch(url, options = {}) {
   if (!ID_TOKEN) throw new Error('Not signed in.');
   const headers = Object.assign({}, options.headers || {}, { 'Authorization': 'Bearer ' + ID_TOKEN });
   return fetch(url, Object.assign({}, options, { headers }));
 }
 
-/******** API CALLS (ADMIN) ********/
+/******** ADMIN API CALLS ********/
 async function ping(){
   const res = await fetch(buildUrl('?__ping=1')); // public
   if (!res.ok) throw new Error('Ping failed');
@@ -77,12 +90,12 @@ async function exportPaidCSV(){
   a.click();
 }
 
-/******** RENDER ********/
+/******** RENDERING ********/
 function currency(n){ return new Intl.NumberFormat(undefined,{style:'currency', currency:'USD'}).format(n||0); }
 
 function renderResults(list){
   const box = document.getElementById('results');
-  if (!list || !list.length) { box.innerHTML = '<p class="muted">No results.</p>'; return; }
+  if (!list || !list.length) { box.innerHTML = '<p style="color:#555">No results.</p>'; return; }
   const thead = `<thead><tr><th>Order ID</th><th>Name</th><th class="right">Total</th><th>Created</th><th>Status</th><th>Actions</th></tr></thead>`;
   let tbody = '<tbody>';
   list.forEach(r => {
@@ -103,7 +116,6 @@ function renderResults(list){
   tbody += '</tbody>';
   box.innerHTML = `<table class="table">${thead}${tbody}</table>`;
 
-  // handlers
   box.querySelectorAll('button[data-toggle]').forEach(btn => {
     btn.addEventListener('click', async (ev) => {
       const tr = ev.target.closest('tr');
@@ -175,12 +187,17 @@ function printPackSlip(o){
   win.document.close();
 }
 
-/******** GOOGLE SIGN-IN (button render with safe polling) ********/
+/******** GOOGLE SIGN-IN ********/
 function onSignInSuccess(response) {
   ID_TOKEN = response.credential;
+  const msg = document.getElementById('loginMsg');
+  msg.textContent = 'Signing in…';
 
-  // Verify against backend allowlist (optional but nice UX)
-  fetch(buildUrl(`?path=admin&action=verifyLogin`), {
+  let url;
+  try { url = buildUrl(`?path=admin&action=verifyLogin`); }
+  catch (e) { msg.textContent = 'Base URL missing/invalid. Enter it and click Save.'; return; }
+
+  fetch(url, {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({ idToken: ID_TOKEN })
@@ -188,41 +205,40 @@ function onSignInSuccess(response) {
   .then(r => r.json())
   .then(data => {
     if (data && data.allowed) {
+      msg.textContent = 'Signed in as ' + (data.email || '');
       document.getElementById('login').classList.add('hidden');
       document.getElementById('app').classList.remove('hidden');
+      // Kick an initial test
+      document.getElementById('testConn').click();
     } else {
-      document.getElementById('loginMsg').textContent = 'Access denied for this Google account.';
+      msg.textContent = 'Access denied for this Google account.';
     }
   })
-  .catch(e => {
-    document.getElementById('loginMsg').textContent = 'Login check failed: ' + e.message;
-  });
+  .catch(e => { msg.textContent = 'Login check failed: ' + e.message; });
 }
 
-// Render the Google button after the GIS library actually loads.
 function renderGsiButton() {
   if (window.google && google.accounts && google.accounts.id) {
     google.accounts.id.initialize({ client_id: GIS_CLIENT_ID, callback: onSignInSuccess });
     google.accounts.id.renderButton(document.getElementById('gsi'), { theme: 'outline', size: 'large' });
-    // Optional One Tap:
-    // google.accounts.id.prompt();
   } else {
-    setTimeout(renderGsiButton, 200); // wait for the async script
+    setTimeout(renderGsiButton, 200); // wait for async load
   }
 }
 
 /******** BOOT ********/
-document.addEventListener('DOMContentLoaded', () => {
-  // Load saved URL (auto-fill if you want)
-  const s = getSettings();
-  document.getElementById('baseUrl').value = s.base;
+window.addEventListener('unhandledrejection', e => console.error('UNHANDLED:', e.reason));
+window.addEventListener('error', e => console.error('ERROR:', e.message, e.error));
 
+document.addEventListener('DOMContentLoaded', () => {
+  initBase(); // fills the Base URL from ?base=, saved, or DEFAULT_BASE
+
+  // Save/Test
   document.getElementById('saveConn').addEventListener('click', () => {
     const base = document.getElementById('baseUrl').value;
     setSettings(base);
     document.getElementById('connMsg').textContent = 'Saved.';
   });
-
   document.getElementById('testConn').addEventListener('click', async () => {
     try {
       const t = await ping();
@@ -234,6 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Search
   document.getElementById('searchBtn').addEventListener('click', async () => {
     const q = document.getElementById('query').value.trim();
     const pf = document.getElementById('paidFilter').value;
@@ -245,6 +262,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (e) { alert(e.message); }
   });
 
+  // Lock/Unlock
   document.getElementById('lockBtn').addEventListener('click', async () => {
     await setLock(true);
     const st = await getLockState();
@@ -256,15 +274,15 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('lockState').textContent = st.ordersLocked ? 'Currently: LOCKED' : 'Currently: OPEN';
   });
 
+  // Totals/Export
   document.getElementById('refreshTotals').addEventListener('click', async () => {
     const p = await paidTotals();
     document.getElementById('paidSum').textContent = 'Paid Sum: ' + currency(p.sum||0);
     document.getElementById('paidCount').textContent = 'Paid Orders: ' + (p.count||0);
     document.getElementById('totalsBreakdown').textContent = (p.byLast||[]).map(x => `${x.last}: ${currency(x.total)}`).join('  |  ');
   });
-
   document.getElementById('exportPaid').addEventListener('click', exportPaidCSV);
 
-  // Kick off Google button rendering
+  // Render Google button
   renderGsiButton();
 });
