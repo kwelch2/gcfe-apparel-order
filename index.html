@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Apparel Order</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="container">
+    <h1>Apparel Order</h1>
+    <p class="muted">Select items, sizes, and quantities. Totals update live.</p>
+  </header>
+
+  <main class="container">
+    <section id="customer-block" class="card">
+      <h2>Contact</h2>
+      <div class="grid">
+        <label>First Name <input id="firstName" required></label>
+        <label>Last Name <input id="lastName" required></label>
+        <label>Email <input id="email" type="email" required></label>
+        <label>Phone <input id="phone" type="tel"></label>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="row between center">
+        <h2>Items</h2>
+        <button id="addLine" class="btn">+ Add Line</button>
+      </div>
+      <div id="lines"></div>
+      <div class="row between total-bar">
+        <strong>Subtotal</strong>
+        <strong id="subtotal">$0.00</strong>
+      </div>
+      <div class="row between total-bar">
+        <span class="muted">Discounts/Fees</span>
+        <span id="adj">$0.00</span>
+      </div>
+      <div class="row between total-bar grand">
+        <strong>Grand Total</strong>
+        <strong id="grandTotal">$0.00</strong>
+      </div>
+      <div class="row end">
+        <button id="submitBtn" class="btn primary">Submit Order</button>
+      </div>
+      <p id="submitMsg" class="muted"></p>
+    </section>
+
+    <section class="card">
+      <h3>Look up an Order</h3>
+      <div class="grid">
+        <label>Order ID <input id="lookupId"></label>
+        <label>Last Name <input id="lookupLast"></label>
+      </div>
+      <div class="row start">
+        <button id="lookupBtn" class="btn">Find</button>
+      </div>
+      <div id="lookupResult"></div>
+    </section>
+  </main>
+
+  <footer class="container muted small">
+    <p>Questions? Contact admin.</p>
+  </footer>
+
+  <template id="lineTemplate">
+    <div class="line card">
+      <div class="grid">
+        <label>Item
+          <select class="itemSelect"></select>
+        </label>
+        <label>Size
+          <select class="sizeSelect"></select>
+        </label>
+        <label>Qty
+          <input class="qtyInput" type="number" min="1" value="1">
+        </label>
+        <label class="nameWrap hidden">Custom Name
+          <input class="nameInput" placeholder="Name on item">
+        </label>
+        <label>Unit Price
+          <input class="unitPrice" type="text" readonly>
+        </label>
+        <label>Line Total
+          <input class="lineTotal" type="text" readonly>
+        </label>
+      </div>
+      <div class="row end">
+        <button class="btn danger removeBtn">Remove</button>
+      </div>
+    </div>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
