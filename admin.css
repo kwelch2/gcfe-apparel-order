@@ -1,0 +1,38 @@
+
+:root { --pad: 12px; --radius: 14px; }
+* { box-sizing: border-box; }
+body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 0; }
+.container { max-width: 1100px; margin: 0 auto; padding: 16px; }
+.header { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.passcode { display:flex; gap:10px; align-items:center; }
+.muted { color: #555; }
+.small { font-size: 0.9rem; }
+.hidden { display:none; }
+.card { background: #fff; border: 1px solid #ddd; border-radius: var(--radius); padding: var(--pad); margin: 16px 0; }
+.grid2 { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid2 label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; }
+.grid2 input { padding: 10px; border: 1px solid #ccc; border-radius: 10px; font-size: 1rem; }
+.row { display: flex; gap: 10px; align-items: center; }
+.row.between { justify-content: space-between; }
+.row.start { justify-content: flex-start; }
+.row.end { justify-content: flex-end; }
+.row.center { align-items: center; }
+.row.gap { gap: 12px; }
+.btn { padding: 10px 14px; border-radius: 12px; border: 1px solid #ccc; background: #f4f4f4; cursor: pointer; }
+.btn.danger { border-color: #bf2d2d; background: #bf2d2d; color: #fff; }
+.table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+.table th, .table td { padding: 8px 10px; border-bottom: 1px solid #eee; text-align: left; vertical-align: top; }
+.table td.right { text-align: right; }
+.badge { padding: 2px 8px; border-radius: 999px; border: 1px solid #ddd; font-size: 0.85rem; }
+.badge.paid { background: #e7f7e7; border-color: #9cd49c; }
+.badge.unpaid { background: #fff2f2; border-color: #f1b3b3; }
+.badge.total { background: #eef0ff; border-color: #b5c1ff; font-weight: 700; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.detail { display: grid; grid-template-columns: 320px 1fr; gap: 16px; padding: 8px; background: #fafafa; border: 1px dashed #ddd; border-radius: 12px; }
+.subtable { width: 100%; border-collapse: collapse; margin-top: 6px; }
+.subtable th, .subtable td { border-bottom: 1px solid #eee; padding: 6px 8px; }
+.inline { display:inline-flex; align-items:center; gap:6px; }
+@media print {
+  body { background: #fff; }
+  .no-print { display: none !important; }
+}

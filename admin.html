@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Apparel Orders — Admin</title>
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+  <header class="container header">
+    <h1>Admin Dashboard</h1>
+    <div class="passcode">
+      <label>Passcode
+        <input id="passcode" type="password" placeholder="Enter passcode">
+      </label>
+      <button id="passOk" class="btn">Unlock</button>
+      <span id="passMsg" class="muted"></span>
+    </div>
+  </header>
+
+  <main class="container hidden" id="app">
+    <section class="card">
+      <h2>Connection</h2>
+      <div class="grid2">
+        <label>Apps Script Base URL (ends with <code>/exec</code>)
+          <input id="baseUrl" placeholder="https://script.google.com/macros/s/AKfyc.../exec">
+        </label>
+        <label>Admin Token
+          <input id="token" placeholder="Your ADMIN_TOKEN">
+        </label>
+      </div>
+      <div class="row start">
+        <button id="saveConn" class="btn">Save</button>
+        <button id="testConn" class="btn">Test</button>
+        <span id="connMsg" class="muted"></span>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="row between center">
+        <h2>Order Search</h2>
+        <div class="row gap">
+          <input id="query" class="input" placeholder="Order ID (A123456) or last name (Welch)">
+          <select id="paidFilter">
+            <option value="">All</option>
+            <option value="paid">Paid</option>
+            <option value="unpaid">Unpaid</option>
+          </select>
+          <label class="inline">From <input id="fromDate" type="date"></label>
+          <label class="inline">To <input id="toDate" type="date"></label>
+          <button id="searchBtn" class="btn">Search</button>
+          <button id="exportPaid" class="btn">Export Paid CSV</button>
+        </div>
+      </div>
+      <div id="results"></div>
+    </section>
+
+    <section class="card">
+      <div class="row between center">
+        <h2>Ordering Window</h2>
+        <div class="row gap">
+          <button id="lockBtn" class="btn danger">Lock Orders</button>
+          <button id="unlockBtn" class="btn">Unlock Orders</button>
+          <span id="lockState" class="muted"></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="row between center">
+        <h2>Paid Totals</h2>
+        <div class="row gap">
+          <button id="refreshTotals" class="btn">Refresh</button>
+          <span id="paidSum" class="badge total"></span>
+          <span id="paidCount" class="badge"></span>
+        </div>
+      </div>
+      <div id="totalsBreakdown" class="muted"></div>
+    </section>
+  </main>
+
+  <template id="rowTemplate">
+    <tr>
+      <td class="mono oid"></td>
+      <td class="name"></td>
+      <td class="total right"></td>
+      <td class="created"></td>
+      <td class="status"></td>
+      <td class="actions"></td>
+    </tr>
+  </template>
+
+  <template id="detailTemplate">
+    <tr class="detail-row">
+      <td colspan="6">
+        <div class="detail">
+          <div class="detail-left">
+            <div><strong>Contact:</strong> <span class="contact"></span></div>
+            <div><strong>Email:</strong> <span class="email"></span></div>
+            <div><strong>Phone:</strong> <span class="phone"></span></div>
+          </div>
+          <div class="detail-right">
+            <table class="subtable">
+              <thead><tr><th>SKU</th><th>Item</th><th>Size</th><th>Qty</th><th>Name</th><th>Unit</th><th>Line</th></tr></thead>
+              <tbody class="lines"></tbody>
+            </table>
+            <div class="row end">
+              <button class="btn" data-print>Print Pack Slip</button>
+              <a class="btn" data-view target="_blank">View (public)</a>
+            </div>
+          </div>
+        </div>
+      </td>
+    </tr>
+  </template>
+
+  <script src="admin.js"></script>
+</body>
+</html>
