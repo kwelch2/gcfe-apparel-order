@@ -33,6 +33,13 @@ function buildUrl(qs){
   return base + qs;
 }
 
+function adminUrl(qs) {
+  if (!ID_TOKEN) throw new Error('Not signed in.');
+  const joiner = qs.includes('?') ? '&' : '?';
+  return buildUrl(qs + joiner + 'idToken=' + encodeURIComponent(ID_TOKEN));
+}
+
+
 /******** AUTHED FETCH (sends Google ID token) ********/
 function authFetch(url, options = {}) {
   if (!ID_TOKEN) throw new Error('Not signed in.');
@@ -225,6 +232,35 @@ function renderGsiButton() {
     setTimeout(renderGsiButton, 200); // wait for async load
   }
 }
+
+function onSignInSuccess(response) {
+  ID_TOKEN = response.credential;
+  const msg = document.getElementById('loginMsg');
+  msg.textContent = 'Signing in…';
+
+  let url;
+  try {
+    url = buildUrl(`?path=admin&action=verifyLogin&idToken=${encodeURIComponent(ID_TOKEN)}`);
+  } catch (e) {
+    msg.textContent = 'Base URL missing/invalid. Enter it and click Save.';
+    return;
+  }
+
+  fetch(url)
+    .then(r => r.json())
+    .then(data => {
+      if (data && data.allowed) {
+        msg.textContent = 'Signed in as ' + (data.email || '');
+        document.getElementById('login').classList.add('hidden');
+        document.getElementById('app').classList.remove('hidden');
+        document.getElementById('testConn').click();
+      } else {
+        msg.textContent = 'Access denied for this Google account.';
+      }
+    })
+    .catch(e => { msg.textContent = 'Login check failed: ' + e.message; });
+}
+
 
 /******** BOOT ********/
 window.addEventListener('unhandledrejection', e => console.error('UNHANDLED:', e.reason));
