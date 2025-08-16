@@ -1,15 +1,20 @@
-// Version: 2025-08-15_1
-// Change: GET verifyLogin; send idToken as query param on all admin calls; simplified UI.
-
 /******** CONFIG ********/
+// Your Google OAuth Client ID (you provided this)
 const GIS_CLIENT_ID = '841013736027-qvvar311ihlv00k08jjpiomn4b0ajj0j.apps.googleusercontent.com';
-const DEFAULT_BASE  = ''; // optional: 'https://script.google.com/macros/s/AKfycb.../exec'
+
+// Optional: set your /exec here so the page works without typing it.
+// Or pass it via URL like .../admin.html?base=https://script.google.com/macros/s/XXXX/exec
+const DEFAULT_BASE  = 'https://script.google.com/macros/s/AKfycbyUVS_fgzCDUfGMFnXTA8do80dK2OtDZwrhgKYNPidyxpGQtfWaPzZhGsBP4P-k2Ua5Ww/exec'; // e.g., 'https://script.google.com/macros/s/AKfycb.../exec'
 
 let ID_TOKEN = '';
 
 /******** SETTINGS ********/
-function getSettings() { return { base: localStorage.getItem('admin_base') || '' }; }
-function setSettings(base){ localStorage.setItem('admin_base', (base||'').trim()); }
+function getSettings() {
+  return { base: localStorage.getItem('admin_base') || '' };
+}
+function setSettings(base){
+  localStorage.setItem('admin_base', (base||'').trim());
+}
 function initBase() {
   const urlBase = new URL(location.href).searchParams.get('base');
   const saved   = localStorage.getItem('admin_base');
@@ -22,45 +27,45 @@ function initBase() {
 }
 function buildUrl(qs){
   const { base } = getSettings();
-  if (!base || !/^https?:\/\//.test(base) || !\/\/exec$/.test(base)) {
+  if (!base || !/^https?:\/\//.test(base) || !/\/exec$/.test(base)) {
     throw new Error('Set a valid Apps Script /exec base URL.');
   }
   return base + qs;
 }
 
-/******** ADMIN URL HELPER (adds idToken) ********/
-function adminUrl(qs) {
+/******** AUTHED FETCH (sends Google ID token) ********/
+function authFetch(url, options = {}) {
   if (!ID_TOKEN) throw new Error('Not signed in.');
-  const joiner = qs.includes('?') ? '&' : '?';
-  return buildUrl(qs + joiner + 'idToken=' + encodeURIComponent(ID_TOKEN));
+  const headers = Object.assign({}, options.headers || {}, { 'Authorization': 'Bearer ' + ID_TOKEN });
+  return fetch(url, Object.assign({}, options, { headers }));
 }
 
-/******** API CALLS ********/
+/******** ADMIN API CALLS ********/
 async function ping(){
   const res = await fetch(buildUrl('?__ping=1')); // public
   if (!res.ok) throw new Error('Ping failed');
   return res.text();
 }
 async function getLockState(){
-  const res = await fetch(adminUrl(`?path=admin&action=getState`));
+  const res = await authFetch(buildUrl(`?path=admin&action=getState`));
   if (!res.ok) throw new Error('State check failed');
   return res.json();
 }
 async function setLock(lock){
   const action = lock ? 'lockOrders' : 'unlockOrders';
-  const res = await fetch(adminUrl(`?path=admin&action=${action}`));
+  const res = await authFetch(buildUrl(`?path=admin&action=${action}`));
   if (!res.ok) throw new Error('Toggle failed');
   return res.json();
 }
 async function searchOrders(q, paidFilter, fromDate, toDate){
-  const url = adminUrl(`?path=admin&action=search&q=${encodeURIComponent(q)}&paid=${encodeURIComponent(paidFilter||'')}&from=${encodeURIComponent(fromDate||'')}&to=${encodeURIComponent(toDate||'')}`);
-  const res = await fetch(url);
+  const url = buildUrl(`?path=admin&action=search&q=${encodeURIComponent(q)}&paid=${encodeURIComponent(paidFilter||'')}&from=${encodeURIComponent(fromDate||'')}&to=${encodeURIComponent(toDate||'')}`);
+  const res = await authFetch(url);
   if (!res.ok) throw new Error('Search failed');
   return res.json();
 }
 async function togglePaid(orderId, paid){
   const action = paid ? 'markPaid' : 'markUnpaid';
-  const res = await fetch(adminUrl(`?path=admin&action=${action}&orderId=${encodeURIComponent(orderId)}`));
+  const res = await authFetch(buildUrl(`?path=admin&action=${action}&orderId=${encodeURIComponent(orderId)}`));
   if (!res.ok) throw new Error('Paid toggle failed');
   return res.json();
 }
@@ -70,12 +75,12 @@ async function getOrder(orderId, lastLower){ // public lookup
   return res.json();
 }
 async function paidTotals(){
-  const res = await fetch(adminUrl(`?path=admin&action=paidTotals`));
+  const res = await authFetch(buildUrl(`?path=admin&action=paidTotals`));
   if (!res.ok) throw new Error('Totals failed');
   return res.json();
 }
 async function exportPaidCSV(){
-  const res = await fetch(adminUrl(`?path=admin&action=exportPaidCSV`));
+  const res = await authFetch(buildUrl(`?path=admin&action=exportPaidCSV`));
   if (!res.ok) throw new Error('Export failed');
   const text = await res.text();
   const blob = new Blob([text], { type: 'text/csv' });
@@ -189,26 +194,27 @@ function onSignInSuccess(response) {
   msg.textContent = 'Signing in…';
 
   let url;
-  try {
-    url = buildUrl(`?path=admin&action=verifyLogin&idToken=${encodeURIComponent(ID_TOKEN)}`);
-  } catch (e) {
-    msg.textContent = 'Base URL missing/invalid. Enter it and click Save.';
-    return;
-  }
+  try { url = buildUrl(`?path=admin&action=verifyLogin`); }
+  catch (e) { msg.textContent = 'Base URL missing/invalid. Enter it and click Save.'; return; }
 
-  fetch(url)
-    .then(r => r.json())
-    .then(data => {
-      if (data && data.allowed) {
-        msg.textContent = 'Signed in as ' + (data.email || '');
-        document.getElementById('login').classList.add('hidden');
-        document.getElementById('app').classList.remove('hidden');
-        document.getElementById('testConn').click();
-      } else {
-        msg.textContent = 'Access denied for this Google account.';
-      }
-    })
-    .catch(e => { msg.textContent = 'Login check failed: ' + e.message; });
+  fetch(url, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ idToken: ID_TOKEN })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data && data.allowed) {
+      msg.textContent = 'Signed in as ' + (data.email || '');
+      document.getElementById('login').classList.add('hidden');
+      document.getElementById('app').classList.remove('hidden');
+      // Kick an initial test
+      document.getElementById('testConn').click();
+    } else {
+      msg.textContent = 'Access denied for this Google account.';
+    }
+  })
+  .catch(e => { msg.textContent = 'Login check failed: ' + e.message; });
 }
 
 function renderGsiButton() {
@@ -225,8 +231,9 @@ window.addEventListener('unhandledrejection', e => console.error('UNHANDLED:', e
 window.addEventListener('error', e => console.error('ERROR:', e.message, e.error));
 
 document.addEventListener('DOMContentLoaded', () => {
-  initBase();
+  initBase(); // fills the Base URL from ?base=, saved, or DEFAULT_BASE
 
+  // Save/Test
   document.getElementById('saveConn').addEventListener('click', () => {
     const base = document.getElementById('baseUrl').value;
     setSettings(base);
@@ -243,6 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Search
   document.getElementById('searchBtn').addEventListener('click', async () => {
     const q = document.getElementById('query').value.trim();
     const pf = document.getElementById('paidFilter').value;
@@ -254,6 +262,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (e) { alert(e.message); }
   });
 
+  // Lock/Unlock
   document.getElementById('lockBtn').addEventListener('click', async () => {
     await setLock(true);
     const st = await getLockState();
@@ -265,6 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('lockState').textContent = st.ordersLocked ? 'Currently: LOCKED' : 'Currently: OPEN';
   });
 
+  // Totals/Export
   document.getElementById('refreshTotals').addEventListener('click', async () => {
     const p = await paidTotals();
     document.getElementById('paidSum').textContent = 'Paid Sum: ' + currency(p.sum||0);
@@ -273,5 +283,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   document.getElementById('exportPaid').addEventListener('click', exportPaidCSV);
 
+  // Render Google button
   renderGsiButton();
 });
