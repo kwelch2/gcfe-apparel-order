@@ -40,13 +40,6 @@ function adminUrl(qs) {
 }
 
 
-/******** AUTHED FETCH (sends Google ID token) ********/
-function authFetch(url, options = {}) {
-  if (!ID_TOKEN) throw new Error('Not signed in.');
-  const headers = Object.assign({}, options.headers || {}, { 'Authorization': 'Bearer ' + ID_TOKEN });
-  return fetch(url, Object.assign({}, options, { headers }));
-}
-
 /******** ADMIN API CALLS ********/
 async function ping(){
   const res = await fetch(buildUrl('?__ping=1')); // public
@@ -54,26 +47,25 @@ async function ping(){
   return res.text();
 }
 async function getLockState(){
-  const res = await authFetch(buildUrl(`?path=admin&action=getState`));
+  const res = await fetch(adminUrl(`?path=admin&action=getState`));
   if (!res.ok) throw new Error('State check failed');
   return res.json();
 }
 async function setLock(lock){
   const action = lock ? 'lockOrders' : 'unlockOrders';
-  const res = await authFetch(buildUrl(`?path=admin&action=${action}`));
+  const res = await fetch(adminUrl(`?path=admin&action=${action}`));
   if (!res.ok) throw new Error('Toggle failed');
   return res.json();
 }
 async function searchOrders(q, paidFilter, fromDate, toDate){
-  const url = buildUrl(`?path=admin&action=search&q=${encodeURIComponent(q)}&paid=${encodeURIComponent(paidFilter||'')}&from=${encodeURIComponent(fromDate||'')}&to=${encodeURIComponent(toDate||'')}`);
-  const res = await authFetch(url);
+  const url = adminUrl(`?path=admin&action=search&q=${encodeURIComponent(q)}&paid=${encodeURIComponent(paidFilter||'')}&from=${encodeURIComponent(fromDate||'')}&to=${encodeURIComponent(toDate||'')}`);
+  const res = await fetch(url);
   if (!res.ok) throw new Error('Search failed');
   return res.json();
 }
 async function togglePaid(orderId, paid){
   const action = paid ? 'markPaid' : 'markUnpaid';
-  const res = await authFetch(buildUrl(`?path=admin&action=${action}&orderId=${encodeURIComponent(orderId)}`));
-  if (!res.ok) throw new Error('Paid toggle failed');
+  const res = await fetch(adminUrl(`?path=admin&action=${action}&orderId=${encodeURIComponent(orderId)}`));
   return res.json();
 }
 async function getOrder(orderId, lastLower){ // public lookup
@@ -82,12 +74,12 @@ async function getOrder(orderId, lastLower){ // public lookup
   return res.json();
 }
 async function paidTotals(){
-  const res = await authFetch(buildUrl(`?path=admin&action=paidTotals`));
+  const res = await fetch(adminUrl(`?path=admin&action=paidTotals`));
   if (!res.ok) throw new Error('Totals failed');
   return res.json();
 }
 async function exportPaidCSV(){
-  const res = await authFetch(buildUrl(`?path=admin&action=exportPaidCSV`));
+  const res = await fetch(adminUrl(`?path=admin&action=exportPaidCSV`));
   if (!res.ok) throw new Error('Export failed');
   const text = await res.text();
   const blob = new Blob([text], { type: 'text/csv' });
