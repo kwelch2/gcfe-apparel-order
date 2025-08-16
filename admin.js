@@ -196,12 +196,7 @@ function onSignInSuccess(response) {
   try { url = buildUrl(`?path=admin&action=verifyLogin`); }
   catch (e) { msg.textContent = 'Base URL missing/invalid. Enter it and click Save.'; return; }
 
-  fetch(url, {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({ idToken: ID_TOKEN })
-  })
-  .then(r => r.json())
+   .then(r => r.json())
   .then(data => {
     if (data && data.allowed) {
       msg.textContent = 'Signed in as ' + (data.email || '');
