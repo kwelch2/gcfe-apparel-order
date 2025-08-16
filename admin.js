@@ -66,6 +66,7 @@ async function searchOrders(q, paidFilter, fromDate, toDate){
 async function togglePaid(orderId, paid){
   const action = paid ? 'markPaid' : 'markUnpaid';
   const res = await fetch(adminUrl(`?path=admin&action=${action}&orderId=${encodeURIComponent(orderId)}`));
+  if (!res.ok) throw new Error('Paid toggle failed');   // restore this
   return res.json();
 }
 async function getOrder(orderId, lastLower){ // public lookup
@@ -192,23 +193,29 @@ function onSignInSuccess(response) {
   const msg = document.getElementById('loginMsg');
   msg.textContent = 'Signing in…';
 
+  // Build GET URL with idToken in the query (no headers, no preflight)
   let url;
-  try { url = buildUrl(`?path=admin&action=verifyLogin`); }
-  catch (e) { msg.textContent = 'Base URL missing/invalid. Enter it and click Save.'; return; }
+  try {
+    url = buildUrl(`?path=admin&action=verifyLogin&idToken=${encodeURIComponent(ID_TOKEN)}`);
+  } catch (e) {
+    msg.textContent = 'Base URL missing/invalid. Enter it and click Save.';
+    return;
+  }
 
-   .then(r => r.json())
-  .then(data => {
-    if (data && data.allowed) {
-      msg.textContent = 'Signed in as ' + (data.email || '');
-      document.getElementById('login').classList.add('hidden');
-      document.getElementById('app').classList.remove('hidden');
-      // Kick an initial test
-      document.getElementById('testConn').click();
-    } else {
-      msg.textContent = 'Access denied for this Google account.';
-    }
-  })
-  .catch(e => { msg.textContent = 'Login check failed: ' + e.message; });
+  // You accidentally deleted this fetch(...) line — put it back
+  fetch(url)
+    .then(r => r.json())
+    .then(data => {
+      if (data && data.allowed) {
+        msg.textContent = 'Signed in as ' + (data.email || '');
+        document.getElementById('login').classList.add('hidden');
+        document.getElementById('app').classList.remove('hidden');
+        document.getElementById('testConn').click(); // ping + lock state
+      } else {
+        msg.textContent = 'Access denied for this Google account.';
+      }
+    })
+    .catch(e => { msg.textContent = 'Login check failed: ' + e.message; });
 }
 
 function renderGsiButton() {
@@ -216,9 +223,10 @@ function renderGsiButton() {
     google.accounts.id.initialize({ client_id: GIS_CLIENT_ID, callback: onSignInSuccess });
     google.accounts.id.renderButton(document.getElementById('gsi'), { theme: 'outline', size: 'large' });
   } else {
-    setTimeout(renderGsiButton, 200); // wait for async load
+    setTimeout(renderGsiButton, 200);
   }
 }
+
 
 
 /******** BOOT ********/
