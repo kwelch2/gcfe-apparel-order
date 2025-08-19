@@ -66,30 +66,28 @@
 
   <template id="lineTemplate">
     <div class="line card">
-      <div class="grid">
-        <label>Item
-          <select class="itemSelect"></select>
-        </label>
-        <label>Size
-          <select class="sizeSelect"></select>
-        </label>
-        <label>Qty
-          <input class="qtyInput" type="number" min="1" value="1">
-        </label>
-        
-        <div class="nameWrap" style="display: none;">
+      <div class="line-grid">
+        <div class="grid-item-full">
+          <label>Item <select class="itemSelect"></select></label>
+        </div>
+        <div class="grid-item">
+          <label>Size <select class="sizeSelect"></select></label>
+        </div>
+        <div class="grid-item">
+          <label>Qty <input class="qtyInput" type="number" min="1" value="1"></label>
+        </div>
+        <div class="grid-item nameWrap" style="display: none;">
           <label class="cb-label">
             <input type="checkbox" class="addNameCb"> Add Name
           </label>
           <input class="nameInput" placeholder="Name on item" style="display: none;">
         </div>
-
-        <label>Unit Price
-          <input class="unitPrice" type="text" readonly>
-        </label>
-        <label>Line Total
-          <input class="lineTotal" type="text" readonly>
-        </label>
+        <div class="grid-item">
+          <label>Unit Price <input class="unitPrice" type="text" readonly></label>
+        </div>
+        <div class="grid-item">
+          <label>Line Total <input class="lineTotal" type="text" readonly></label>
+        </div>
       </div>
       <div class="row end">
         <button class="btn danger removeBtn">Remove</button>
