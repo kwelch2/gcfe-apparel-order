@@ -57,7 +57,7 @@ function makeLine() {
 
   const recompute = () => {
     const itemIdx = itemSel.value;
-    if (itemIdx === '') {
+    if (itemIdx === '' || sizeSel.value === '') {
       unitPrice.value = '';
       lineTotal.value = '';
       recomputeTotals();
@@ -68,14 +68,16 @@ function makeLine() {
     const sizeOpt = sizeSel.options[sizeSel.selectedIndex];
     const qty = parseInt(qtyInput.value) || 0;
     
-    let currentPrice = parseFloat(sizeOpt.dataset.price || '0');
+    // --- FIX: Logic for base price and optional name price ---
+    let basePrice = parseFloat(sizeOpt.dataset.price || '0');
+    let finalPrice = basePrice;
 
     if (item.allowsName && addNameCb.checked) {
-      currentPrice += item.namePrice || 0;
+      finalPrice += item.namePrice || 0;
     }
 
-    unitPrice.value = currency(currentPrice);
-    lineTotal.value = currency(currentPrice * qty);
+    unitPrice.value = currency(finalPrice);
+    lineTotal.value = currency(finalPrice * qty);
     recomputeTotals();
   };
 
@@ -92,7 +94,7 @@ function makeLine() {
     }
     
     const item = PROCESSED_ITEMS[itemIdx];
-    nameWrap.style.display = item.allowsName ? 'block' : 'none';
+    nameWrap.style.display = item.allowsName ? 'flex' : 'none'; // Use flex for better alignment
 
     item.sizes.forEach(s => {
       const opt = document.createElement('option');
@@ -130,7 +132,6 @@ function recomputeTotals() {
   document.getElementById('subtotal').textContent = currency(subtotal);
   document.getElementById('grandTotal').textContent = currency(subtotal);
 }
-
 
 document.addEventListener('DOMContentLoaded', async () => {
   await fetchItems();
