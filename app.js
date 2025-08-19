@@ -6,34 +6,18 @@ const ENDPOINT_LOOKUP = `${BASE}?path=lookup`;
 
 let PROCESSED_ITEMS = [];
 
-function processItems(items) {
-  const itemsMap = new Map();
-  items.forEach(item => {
-    if (!itemsMap.has(item.sku)) {
-      itemsMap.set(item.sku, {
-        sku: item.sku,
-        name: item.name,
-        allowsName: item.allowsName,
-        namePrice: item.namePrice,
-        imageUrl: item.imageUrl,
-        sizes: [],
-      });
-    }
-    itemsMap.get(item.sku).sizes.push({
-      size: item.size,
-      price: item.price,
-    });
-  });
-  return Array.from(itemsMap.values());
-}
+// The processItems function has been removed, as the Apps Script now handles this.
 
 async function fetchItems() {
   try {
     const res = await fetch(ENDPOINT_ITEMS);
     if (!res.ok) throw new Error(`Failed to fetch: ${res.status}`);
     const rawItems = await res.json();
-    console.log('Raw data from sheet:', rawItems); 
-    PROCESSED_ITEMS = processItems(rawItems);
+    console.log('Data from sheet:', rawItems); // For debugging
+    
+    // Use the data directly, since it's already processed by the script.
+    PROCESSED_ITEMS = rawItems;
+
   } catch (e) {
     console.error("fetchItems error", e);
     alert("Could not load items from server.");
@@ -49,7 +33,6 @@ function makeLine() {
   if (!tmpl) return document.createElement('div'); // Failsafe
   const node = tmpl.content.firstElementChild.cloneNode(true);
 
-  // --- More robust element selection ---
   const itemSel = node.querySelector('.itemSelect');
   const sizeSel = node.querySelector('.sizeSelect');
   const qtyInput = node.querySelector('.qtyInput');
@@ -59,7 +42,6 @@ function makeLine() {
   const removeBtn = node.querySelector('.removeBtn');
   const itemPreview = node.querySelector('.item-preview');
 
-  // These elements are inside nameWrap, so check if nameWrap exists first
   let addNameCb, nameInput;
   if (nameWrap) {
     addNameCb = nameWrap.querySelector('.addNameCb');
@@ -68,7 +50,7 @@ function makeLine() {
 
   if (!itemSel) {
     console.error("Could not find '.itemSelect' in the template.");
-    return node; // Return the node without listeners to prevent further errors
+    return node;
   }
 
   itemSel.innerHTML = '<option value="">Select item…</option>' + PROCESSED_ITEMS.map((it, i) =>
