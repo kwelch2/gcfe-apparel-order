@@ -11,7 +11,6 @@ async function fetchItems() {
     const res = await fetch(ENDPOINT_ITEMS);
     if (!res.ok) throw new Error(`Failed to fetch: ${res.status}`);
     const rawItems = await res.json();
-    console.log('Data from sheet:', rawItems);
     PROCESSED_ITEMS = rawItems;
   } catch (e) {
     console.error("fetchItems error", e);
@@ -84,11 +83,9 @@ function makeLine() {
     const item = PROCESSED_ITEMS[itemIdx];
     if (nameWrap) nameWrap.style.display = item.allowsName ? 'flex' : 'none';
 
-    // --- MODIFIED BLOCK: Show a text link instead of an image ---
     if (item.imageUrl && itemPreview) {
       itemPreview.innerHTML = `<a href="${item.imageUrl}" target="_blank" rel="noopener noreferrer">View Item Details</a>`;
     }
-    // --- END OF MODIFIED BLOCK ---
 
     if (sizeSel) {
       item.sizes.forEach(s => {
@@ -137,6 +134,7 @@ function recomputeTotals() {
 async function submitOrder() {
   const submitBtn = document.getElementById('submitBtn');
   const submitMsg = document.getElementById('submitMsg');
+  const linesDiv = document.getElementById('lines');
   submitBtn.disabled = true;
   submitMsg.textContent = 'Submitting...';
 
@@ -180,8 +178,11 @@ async function submitOrder() {
     }
     const data = await res.json();
     submitMsg.textContent = `Success! Your Order ID is ${data.orderId}.`;
-    document.getElementById('lines').innerHTML = '';
-    document.getElementById('lines').appendChild(makeLine());
+    
+    if(linesDiv) {
+      linesDiv.innerHTML = '';
+      linesDiv.appendChild(makeLine());
+    }
 
   } catch (e) {
     submitMsg.textContent = `Error: ${e.message}`;
