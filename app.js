@@ -15,7 +15,7 @@ function processItems(items) {
         name: item.name,
         allowsName: item.allowsName,
         namePrice: item.namePrice,
-        imageUrl: item.imageUrl, // <-- Add this line
+        imageUrl: item.imageUrl,
         sizes: [],
       });
     }
@@ -45,105 +45,137 @@ function currency(n) {
 
 function makeLine() {
   const tmpl = document.getElementById('lineTemplate');
+  if (!tmpl) return document.createElement('div'); // Failsafe
   const node = tmpl.content.firstElementChild.cloneNode(true);
-  const [itemSel, sizeSel, qtyInput, nameWrap, unitPrice, lineTotal, removeBtn, itemPreview] = [
-    '.itemSelect', '.sizeSelect', '.qtyInput', '.nameWrap', '.unitPrice', '.lineTotal', '.removeBtn', '.item-preview'
-  ].map(sel => node.querySelector(sel));
-  const addNameCb = nameWrap.querySelector('.addNameCb');
-  const nameInput = nameWrap.querySelector('.nameInput');
+
+  // --- More robust element selection ---
+  const itemSel = node.querySelector('.itemSelect');
+  const sizeSel = node.querySelector('.sizeSelect');
+  const qtyInput = node.querySelector('.qtyInput');
+  const nameWrap = node.querySelector('.nameWrap');
+  const unitPrice = node.querySelector('.unitPrice');
+  const lineTotal = node.querySelector('.lineTotal');
+  const removeBtn = node.querySelector('.removeBtn');
+  const itemPreview = node.querySelector('.item-preview');
   
+  // These elements are inside nameWrap, so check if nameWrap exists first
+  let addNameCb, nameInput;
+  if (nameWrap) {
+    addNameCb = nameWrap.querySelector('.addNameCb');
+    nameInput = nameWrap.querySelector('.nameInput');
+  }
+
+  if (!itemSel) {
+    console.error("Could not find '.itemSelect' in the template.");
+    return node; // Return the node without listeners to prevent further errors
+  }
+
   itemSel.innerHTML = '<option value="">Select item…</option>' + PROCESSED_ITEMS.map((it, i) =>
     `<option value="${i}">${it.name}</option>`
   ).join('');
 
   const recompute = () => {
     const itemIdx = itemSel.value;
-    if (itemIdx === '' || sizeSel.value === '') {
-      unitPrice.value = '';
-      lineTotal.value = '';
+    if (itemIdx === '' || !sizeSel || sizeSel.value === '') {
+      if(unitPrice) unitPrice.value = '';
+      if(lineTotal) lineTotal.value = '';
       recomputeTotals();
       return;
     }
     const item = PROCESSED_ITEMS[itemIdx];
     const sizeOpt = sizeSel.options[sizeSel.selectedIndex];
-    const qty = parseInt(qtyInput.value) || 0;
+    const qty = qtyInput ? parseInt(qtyInput.value) || 0 : 0;
+    
     let basePrice = parseFloat(sizeOpt.dataset.price || '0');
     let finalPrice = basePrice;
-    if (item.allowsName && addNameCb.checked) {
+    
+    if (item.allowsName && addNameCb && addNameCb.checked) {
       finalPrice += item.namePrice || 0;
     }
-    unitPrice.value = currency(finalPrice);
-    lineTotal.value = currency(finalPrice * qty);
+    if (unitPrice) unitPrice.value = currency(finalPrice);
+    if (lineTotal) lineTotal.value = currency(finalPrice * qty);
     recomputeTotals();
   };
 
   itemSel.addEventListener('change', () => {
     const itemIdx = itemSel.value;
-    sizeSel.innerHTML = '<option value="">Select size…</option>';
-    nameInput.style.display = 'none';
-    addNameCb.checked = false;
-    itemPreview.innerHTML = ''; // <-- Clear the preview
+    if (sizeSel) sizeSel.innerHTML = '<option value="">Select size…</option>';
+    if (nameInput) nameInput.style.display = 'none';
+    if (addNameCb) addNameCb.checked = false;
+    if (itemPreview) itemPreview.innerHTML = '';
 
     if (itemIdx === '') {
-      nameWrap.style.display = 'none';
+      if (nameWrap) nameWrap.style.display = 'none';
       recompute();
       return;
     }
     
     const item = PROCESSED_ITEMS[itemIdx];
-    nameWrap.style.display = item.allowsName ? 'flex' : 'none';
-
-    // --- New block to display the image ---
-    if (item.imageUrl) {
+    if (nameWrap) nameWrap.style.display = item.allowsName ? 'flex' : 'none';
+    
+    if (item.imageUrl && itemPreview) {
       itemPreview.innerHTML = `
         <a href="${item.imageUrl}" target="_blank" rel="noopener noreferrer">
           <img src="${item.imageUrl}" alt="${item.name}" class="item-thumbnail">
         </a>`;
     }
-    // --- End of new block ---
 
-    item.sizes.forEach(s => {
-      const opt = document.createElement('option');
-      opt.value = s.size;
-      opt.textContent = s.size;
-      opt.dataset.price = s.price;
-      sizeSel.appendChild(opt);
+    if (sizeSel) {
+      item.sizes.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.size;
+        opt.textContent = s.size;
+        opt.dataset.price = s.price;
+        sizeSel.appendChild(opt);
+      });
+    }
+    recompute();
+  });
+
+  if (addNameCb) {
+    addNameCb.addEventListener('change', () => {
+      if (nameInput) nameInput.style.display = addNameCb.checked ? 'block' : 'none';
+      recompute();
     });
-    recompute();
-  });
-
-  addNameCb.addEventListener('change', () => {
-    nameInput.style.display = addNameCb.checked ? 'block' : 'none';
-    recompute();
-  });
+  }
   
-  sizeSel.addEventListener('change', recompute);
-  qtyInput.addEventListener('input', recompute);
-  removeBtn.addEventListener('click', () => {
-    node.remove();
-    recomputeTotals();
-  });
-
+  if (sizeSel) sizeSel.addEventListener('change', recompute);
+  if (qtyInput) qtyInput.addEventListener('input', recompute);
+  if (removeBtn) {
+    removeBtn.addEventListener('click', () => {
+      node.remove();
+      recomputeTotals();
+    });
+  }
   return node;
 }
 
 function recomputeTotals() {
   let subtotal = 0;
   document.querySelectorAll('.line').forEach(line => {
-    const totalVal = parseFloat(line.querySelector('.lineTotal').value.replace(/[^0-9.-]+/g, ""));
-    if (!isNaN(totalVal)) {
-      subtotal += totalVal;
+    const lineTotalInput = line.querySelector('.lineTotal');
+    if (lineTotalInput) {
+      const totalVal = parseFloat(lineTotalInput.value.replace(/[^0-9.-]+/g, ""));
+      if (!isNaN(totalVal)) subtotal += totalVal;
     }
   });
-  document.getElementById('subtotal').textContent = currency(subtotal);
-  document.getElementById('grandTotal').textContent = currency(subtotal);
+  const subtotalEl = document.getElementById('subtotal');
+  const grandTotalEl = document.getElementById('grandTotal');
+  if (subtotalEl) subtotalEl.textContent = currency(subtotal);
+  if (grandTotalEl) grandTotalEl.textContent = currency(subtotal);
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
   await fetchItems();
   const linesDiv = document.getElementById('lines');
-  linesDiv.appendChild(makeLine());
-  document.getElementById('addLine').addEventListener('click', () => {
+  const addLineBtn = document.getElementById('addLine');
+
+  if (linesDiv) {
     linesDiv.appendChild(makeLine());
-  });
+  }
+  if (addLineBtn && linesDiv) {
+    addLineBtn.addEventListener('click', () => {
+      linesDiv.appendChild(makeLine());
+    });
+  }
 });
