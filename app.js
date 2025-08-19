@@ -32,6 +32,7 @@ async function fetchItems() {
     const res = await fetch(ENDPOINT_ITEMS);
     if (!res.ok) throw new Error(`Failed to fetch: ${res.status}`);
     const rawItems = await res.json();
+    console.log('Raw data from sheet:', rawItems); 
     PROCESSED_ITEMS = processItems(rawItems);
   } catch (e) {
     console.error("fetchItems error", e);
