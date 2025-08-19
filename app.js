@@ -59,14 +59,14 @@ function makeLine() {
     const item = ITEMS[itemIndex];
     const qty = parseInt(qtyInput.value) || 0;
 
-    // Populate sizes
-    sizeSel.innerHTML = item.sizes.map(s => `<option>${s}</option>`).join('');
+    // Populate sizes - Fixed to handle objects
+    sizeSel.innerHTML = item.sizes.map(s => `<option>${s.size}</option>`).join('');
 
     unitPrice.value = currency(item.price);
     lineTotal.value = currency(item.price * qty);
 
     // Handle custom name visibility
-    if (item.allowName) {
+    if (item.allowName === true || item.allowName === 'TRUE') {
       nameWrap.style.display = 'block';
     } else {
       nameWrap.style.display = 'none';
