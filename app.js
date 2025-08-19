@@ -1,6 +1,6 @@
 const BASE = 'https://script.google.com/macros/s/AKfycbyUVS_fgzCDUfGMFnXTA8do80dK2OtDZwrhgKYNPidyxpGQtfWaPzZhGsBP4P-k2Ua5Ww/exec';
 
-const ENDPOINT_ITEMS  = `${BASE}?path=items`;
+const ENDPOINT_ITEMS = `${BASE}?path=items`;
 const ENDPOINT_SUBMIT = `${BASE}`;
 const ENDPOINT_LOOKUP = `${BASE}?path=lookup`;
 
@@ -57,7 +57,7 @@ function makeLine() {
   const lineTotal = node.querySelector('.lineTotal');
   const removeBtn = node.querySelector('.removeBtn');
   const itemPreview = node.querySelector('.item-preview');
-  
+
   // These elements are inside nameWrap, so check if nameWrap exists first
   let addNameCb, nameInput;
   if (nameWrap) {
@@ -85,10 +85,10 @@ function makeLine() {
     const item = PROCESSED_ITEMS[itemIdx];
     const sizeOpt = sizeSel.options[sizeSel.selectedIndex];
     const qty = qtyInput ? parseInt(qtyInput.value) || 0 : 0;
-    
+
     let basePrice = parseFloat(sizeOpt.dataset.price || '0');
     let finalPrice = basePrice;
-    
+
     if (item.allowsName && addNameCb && addNameCb.checked) {
       finalPrice += item.namePrice || 0;
     }
@@ -109,10 +109,10 @@ function makeLine() {
       recompute();
       return;
     }
-    
+
     const item = PROCESSED_ITEMS[itemIdx];
     if (nameWrap) nameWrap.style.display = item.allowsName ? 'flex' : 'none';
-    
+
     if (item.imageUrl && itemPreview) {
       itemPreview.innerHTML = `
         <a href="${item.imageUrl}" target="_blank" rel="noopener noreferrer">
@@ -138,7 +138,7 @@ function makeLine() {
       recompute();
     });
   }
-  
+
   if (sizeSel) sizeSel.addEventListener('change', recompute);
   if (qtyInput) qtyInput.addEventListener('input', recompute);
   if (removeBtn) {
