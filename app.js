@@ -15,6 +15,7 @@ function processItems(items) {
         name: item.name,
         allowsName: item.allowsName,
         namePrice: item.namePrice,
+        imageUrl: item.imageUrl, // <-- Add this line
         sizes: [],
       });
     }
@@ -45,8 +46,8 @@ function currency(n) {
 function makeLine() {
   const tmpl = document.getElementById('lineTemplate');
   const node = tmpl.content.firstElementChild.cloneNode(true);
-  const [itemSel, sizeSel, qtyInput, nameWrap, unitPrice, lineTotal, removeBtn] = [
-    '.itemSelect', '.sizeSelect', '.qtyInput', '.nameWrap', '.unitPrice', '.lineTotal', '.removeBtn'
+  const [itemSel, sizeSel, qtyInput, nameWrap, unitPrice, lineTotal, removeBtn, itemPreview] = [
+    '.itemSelect', '.sizeSelect', '.qtyInput', '.nameWrap', '.unitPrice', '.lineTotal', '.removeBtn', '.item-preview'
   ].map(sel => node.querySelector(sel));
   const addNameCb = nameWrap.querySelector('.addNameCb');
   const nameInput = nameWrap.querySelector('.nameInput');
@@ -63,19 +64,14 @@ function makeLine() {
       recomputeTotals();
       return;
     }
-
     const item = PROCESSED_ITEMS[itemIdx];
     const sizeOpt = sizeSel.options[sizeSel.selectedIndex];
     const qty = parseInt(qtyInput.value) || 0;
-    
-    // --- FIX: Logic for base price and optional name price ---
     let basePrice = parseFloat(sizeOpt.dataset.price || '0');
     let finalPrice = basePrice;
-
     if (item.allowsName && addNameCb.checked) {
       finalPrice += item.namePrice || 0;
     }
-
     unitPrice.value = currency(finalPrice);
     lineTotal.value = currency(finalPrice * qty);
     recomputeTotals();
@@ -86,6 +82,7 @@ function makeLine() {
     sizeSel.innerHTML = '<option value="">Select size…</option>';
     nameInput.style.display = 'none';
     addNameCb.checked = false;
+    itemPreview.innerHTML = ''; // <-- Clear the preview
 
     if (itemIdx === '') {
       nameWrap.style.display = 'none';
@@ -94,7 +91,16 @@ function makeLine() {
     }
     
     const item = PROCESSED_ITEMS[itemIdx];
-    nameWrap.style.display = item.allowsName ? 'flex' : 'none'; // Use flex for better alignment
+    nameWrap.style.display = item.allowsName ? 'flex' : 'none';
+
+    // --- New block to display the image ---
+    if (item.imageUrl) {
+      itemPreview.innerHTML = `
+        <a href="${item.imageUrl}" target="_blank" rel="noopener noreferrer">
+          <img src="${item.imageUrl}" alt="${item.name}" class="item-thumbnail">
+        </a>`;
+    }
+    // --- End of new block ---
 
     item.sizes.forEach(s => {
       const opt = document.createElement('option');
@@ -140,5 +146,4 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('addLine').addEventListener('click', () => {
     linesDiv.appendChild(makeLine());
   });
-  // Other listeners can be added here
 });
