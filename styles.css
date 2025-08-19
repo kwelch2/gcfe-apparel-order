@@ -35,17 +35,10 @@ h1, h2, h3 { margin: 8px 0 12px; }
 }
 .nameWrap .cb-label { flex-direction: row; align-items: center; }
 
-/* --- New styles for the image preview --- */
 .item-preview {
   padding-top: 8px;
+  font-size: 0.9rem;
 }
-.item-thumbnail {
-  max-width: 100px;
-  max-height: 100px;
-  border-radius: 8px;
-  border: 1px solid #ddd;
-}
-/* --- End of new styles --- */
 
 .hidden { display: none; }
 .total-bar { padding: 10px 0; }

@@ -1,23 +1,18 @@
 const BASE = 'https://script.google.com/macros/s/AKfycbyUVS_fgzCDUfGMFnXTA8do80dK2OtDZwrhgKYNPidyxpGQtfWaPzZhGsBP4P-k2Ua5Ww/exec';
 
 const ENDPOINT_ITEMS = `${BASE}?path=items`;
-const ENDPOINT_SUBMIT = `${BASE}`;
+const ENDPOINT_SUBMIT = `${BASE}?path=submit`;
 const ENDPOINT_LOOKUP = `${BASE}?path=lookup`;
 
 let PROCESSED_ITEMS = [];
-
-// The processItems function has been removed, as the Apps Script now handles this.
 
 async function fetchItems() {
   try {
     const res = await fetch(ENDPOINT_ITEMS);
     if (!res.ok) throw new Error(`Failed to fetch: ${res.status}`);
     const rawItems = await res.json();
-    console.log('Data from sheet:', rawItems); // For debugging
-    
-    // Use the data directly, since it's already processed by the script.
+    console.log('Data from sheet:', rawItems);
     PROCESSED_ITEMS = rawItems;
-
   } catch (e) {
     console.error("fetchItems error", e);
     alert("Could not load items from server.");
@@ -30,9 +25,9 @@ function currency(n) {
 
 function makeLine() {
   const tmpl = document.getElementById('lineTemplate');
-  if (!tmpl) return document.createElement('div'); // Failsafe
+  if (!tmpl) return document.createElement('div');
   const node = tmpl.content.firstElementChild.cloneNode(true);
-
+  
   const itemSel = node.querySelector('.itemSelect');
   const sizeSel = node.querySelector('.sizeSelect');
   const qtyInput = node.querySelector('.qtyInput');
@@ -48,10 +43,7 @@ function makeLine() {
     nameInput = nameWrap.querySelector('.nameInput');
   }
 
-  if (!itemSel) {
-    console.error("Could not find '.itemSelect' in the template.");
-    return node;
-  }
+  if (!itemSel) return node;
 
   itemSel.innerHTML = '<option value="">Select item…</option>' + PROCESSED_ITEMS.map((it, i) =>
     `<option value="${i}">${it.name}</option>`
@@ -60,18 +52,16 @@ function makeLine() {
   const recompute = () => {
     const itemIdx = itemSel.value;
     if (itemIdx === '' || !sizeSel || sizeSel.value === '') {
-      if(unitPrice) unitPrice.value = '';
-      if(lineTotal) lineTotal.value = '';
+      if (unitPrice) unitPrice.value = '';
+      if (lineTotal) lineTotal.value = '';
       recomputeTotals();
       return;
     }
     const item = PROCESSED_ITEMS[itemIdx];
     const sizeOpt = sizeSel.options[sizeSel.selectedIndex];
     const qty = qtyInput ? parseInt(qtyInput.value) || 0 : 0;
-
     let basePrice = parseFloat(sizeOpt.dataset.price || '0');
     let finalPrice = basePrice;
-
     if (item.allowsName && addNameCb && addNameCb.checked) {
       finalPrice += item.namePrice || 0;
     }
@@ -86,22 +76,19 @@ function makeLine() {
     if (nameInput) nameInput.style.display = 'none';
     if (addNameCb) addNameCb.checked = false;
     if (itemPreview) itemPreview.innerHTML = '';
-
     if (itemIdx === '') {
       if (nameWrap) nameWrap.style.display = 'none';
       recompute();
       return;
     }
-
     const item = PROCESSED_ITEMS[itemIdx];
     if (nameWrap) nameWrap.style.display = item.allowsName ? 'flex' : 'none';
 
+    // --- MODIFIED BLOCK: Show a text link instead of an image ---
     if (item.imageUrl && itemPreview) {
-      itemPreview.innerHTML = `
-        <a href="${item.imageUrl}" target="_blank" rel="noopener noreferrer">
-          <img src="${item.imageUrl}" alt="${item.name}" class="item-thumbnail">
-        </a>`;
+      itemPreview.innerHTML = `<a href="${item.imageUrl}" target="_blank" rel="noopener noreferrer">View Item Details</a>`;
     }
+    // --- END OF MODIFIED BLOCK ---
 
     if (sizeSel) {
       item.sizes.forEach(s => {
@@ -121,7 +108,6 @@ function makeLine() {
       recompute();
     });
   }
-
   if (sizeSel) sizeSel.addEventListener('change', recompute);
   if (qtyInput) qtyInput.addEventListener('input', recompute);
   if (removeBtn) {
@@ -148,10 +134,87 @@ function recomputeTotals() {
   if (grandTotalEl) grandTotalEl.textContent = currency(subtotal);
 }
 
+async function submitOrder() {
+  const submitBtn = document.getElementById('submitBtn');
+  const submitMsg = document.getElementById('submitMsg');
+  submitBtn.disabled = true;
+  submitMsg.textContent = 'Submitting...';
+
+  try {
+    const payload = {
+      firstName: document.getElementById('firstName').value.trim(),
+      lastName: document.getElementById('lastName').value.trim(),
+      email: document.getElementById('email').value.trim(),
+      phone: document.getElementById('phone').value.trim(),
+      lines: [],
+    };
+    document.querySelectorAll('.line').forEach(line => {
+      const itemIdx = line.querySelector('.itemSelect').value;
+      if (itemIdx === '') return;
+      const item = PROCESSED_ITEMS[itemIdx];
+      const nameInput = line.querySelector('.nameInput');
+      const addNameCb = line.querySelector('.addNameCb');
+      payload.lines.push({
+        sku: item.sku,
+        item: item.name,
+        size: line.querySelector('.sizeSelect').value,
+        qty: parseInt(line.querySelector('.qtyInput').value || '1'),
+        customName: (addNameCb && addNameCb.checked && nameInput) ? nameInput.value.trim() : '',
+        lineTotal: parseFloat(line.querySelector('.lineTotal').value.replace(/[^0-9.-]+/g, "")),
+      });
+    });
+    if (!payload.firstName || !payload.lastName || !payload.email) {
+      throw new Error('Please fill out all contact fields.');
+    }
+    if (payload.lines.length === 0) {
+      throw new Error('Please add at least one item to your order.');
+    }
+    const res = await fetch(ENDPOINT_SUBMIT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const errData = await res.json();
+      throw new Error(errData.error || 'Submission failed.');
+    }
+    const data = await res.json();
+    submitMsg.textContent = `Success! Your Order ID is ${data.orderId}.`;
+    document.getElementById('lines').innerHTML = '';
+    document.getElementById('lines').appendChild(makeLine());
+
+  } catch (e) {
+    submitMsg.textContent = `Error: ${e.message}`;
+  } finally {
+    submitBtn.disabled = false;
+  }
+}
+
+async function lookupOrder() {
+  const id = document.getElementById('lookupId').value.trim();
+  const ln = document.getElementById('lookupLast').value.trim();
+  const resultEl = document.getElementById('lookupResult');
+  if (!id || !ln) {
+    resultEl.textContent = 'Please enter an Order ID and Last Name.';
+    return;
+  }
+  resultEl.textContent = 'Searching...';
+  try {
+    const res = await fetch(`${ENDPOINT_LOOKUP}&orderId=${encodeURIComponent(id)}&last=${encodeURIComponent(ln)}`);
+    if (!res.ok) throw new Error('Order not found.');
+    const data = await res.json();
+    resultEl.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+  } catch (e) {
+    resultEl.textContent = `Error: ${e.message}`;
+  }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   await fetchItems();
   const linesDiv = document.getElementById('lines');
   const addLineBtn = document.getElementById('addLine');
+  const submitBtn = document.getElementById('submitBtn');
+  const lookupBtn = document.getElementById('lookupBtn');
 
   if (linesDiv) {
     linesDiv.appendChild(makeLine());
@@ -160,5 +223,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     addLineBtn.addEventListener('click', () => {
       linesDiv.appendChild(makeLine());
     });
+  }
+  if (submitBtn) {
+    submitBtn.addEventListener('click', submitOrder);
+  }
+  if (lookupBtn) {
+    lookupBtn.addEventListener('click', lookupOrder);
   }
 });
