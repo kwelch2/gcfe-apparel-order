@@ -38,8 +38,8 @@
         <span id="adj">$0.00</span>
       </div>
       <div class="row between total-bar grand">
-        <strong>Total</strong>
-        <strong id="total">$0.00</strong>
+        <strong>Grand Total</strong>
+        <strong id="grandTotal">$0.00</strong>
       </div>
       <div class="row end">
         <button id="submitBtn" class="btn primary">Submit Order</button>
@@ -76,12 +76,14 @@
         <label>Qty
           <input class="qtyInput" type="number" min="1" value="1">
         </label>
+        
         <div class="nameWrap" style="display: none;">
-          <label>
-            <input type="checkbox" class="addNameCb"> Add Custom Name
+          <label class="cb-label">
+            <input type="checkbox" class="addNameCb"> Add Name
           </label>
           <input class="nameInput" placeholder="Name on item" style="display: none;">
         </div>
+
         <label>Unit Price
           <input class="unitPrice" type="text" readonly>
         </label>
@@ -90,7 +92,7 @@
         </label>
       </div>
       <div class="row end">
-        <button class="removeLine btn danger">Remove</button>
+        <button class="btn danger removeBtn">Remove</button>
       </div>
     </div>
   </template>
