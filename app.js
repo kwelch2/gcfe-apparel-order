@@ -3,6 +3,8 @@ const BASE = 'https://script.google.com/macros/s/AKfycbypV4iW-fXvhuH4p73fu6CqXY-
 const ENDPOINT_ITEMS  = `${BASE}?path=items`;
 const ENDPOINT_SUBMIT = `${BASE}?path=submit`;
 const ENDPOINT_LOOKUP = `${BASE}?path=lookup`;
+const ENDPOINT_SETTINGS = `${BASE}?path=settings`;
+
 
 let PROCESSED_ITEMS = [];
 
@@ -278,8 +280,35 @@ async function lookupOrder() {
   }
 }
 
+function formatDueDate(value) {
+  // Try to format like a date; if it’s just a plain string, show as-is.
+  const d = new Date(value);
+  if (!isNaN(d.getTime())) {
+    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+  return value || '';
+}
+
+async function fetchSettings() {
+  try {
+    const res = await fetch(ENDPOINT_SETTINGS);
+    if (!res.ok) throw new Error('Failed to load settings');
+    const s = await res.json();
+    if (s && s.dueDate) {
+      const el = document.getElementById('dueDate');
+      if (el) el.textContent = formatDueDate(s.dueDate);
+    }
+  } catch (e) {
+    console.warn('Settings fetch failed:', e);
+  }
+}
+
+
+
 document.addEventListener('DOMContentLoaded', async () => {
   await fetchItems();
+  await fetchSettings();
+  
   const linesDiv   = document.getElementById('lines');
   const addLineBtn = document.getElementById('addLine');
   const submitBtn  = document.getElementById('submitBtn');
