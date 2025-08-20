@@ -40,6 +40,14 @@ h1, h2, h3 { margin: 8px 0 12px; }
   font-size: 0.9rem;
 }
 
+/* --- NEW: Increase font size for item inputs --- */
+.line-grid select,
+.line-grid input {
+  font-size: 1.1rem; /* Makes the font slightly larger */
+  padding: 12px;     /* Adds a bit more space inside the box */
+}
+/* --- End of new styles --- */
+
 .hidden { display: none; }
 .total-bar { padding: 10px 0; }
 .total-bar.grand { font-size: 1.2rem; border-top: 1px dashed #ddd; }
