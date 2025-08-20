@@ -1,4 +1,4 @@
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbypV4iW-fXvhuH4p73fu6CqXY-1SQ64BLqD3Ln5WI6L_zgAlSQiVK8rEuTs7YQ2IHa_9Q/exec';
+const BASE = 'https://script.google.com/macros/s/AKfycbypV4iW-fXvhuH4p73fu6CqXY-1SQ64BLqD3Ln5WI6L_zgAlSQiVK8rEuTs7YQ2IHa_9Q/exec';
 
 const ENDPOINT_ITEMS = `${BASE}?path=items`;
 const ENDPOINT_SUBMIT = `${BASE}?path=submit`;
