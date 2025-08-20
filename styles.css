@@ -47,6 +47,9 @@ h1, h2, h3 { margin: 8px 0 12px; }
   padding: 12px;     /* Adds a bit more space inside the box */
 }
 /* --- End of new styles --- */
+#lookupResult table th,
+#lookupResult table td { border: 1px solid #ddd; padding: 8px; }
+#lookupResult table th { background: #f6f7f8; text-align: left; }
 
 .hidden { display: none; }
 .total-bar { padding: 10px 0; }

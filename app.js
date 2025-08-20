@@ -1,6 +1,6 @@
 const BASE = 'https://script.google.com/macros/s/AKfycbypV4iW-fXvhuH4p73fu6CqXY-1SQ64BLqD3Ln5WI6L_zgAlSQiVK8rEuTs7YQ2IHa_9Q/exec';
 
-const ENDPOINT_ITEMS = `${BASE}?path=items`;
+const ENDPOINT_ITEMS  = `${BASE}?path=items`;
 const ENDPOINT_SUBMIT = `${BASE}?path=submit`;
 const ENDPOINT_LOOKUP = `${BASE}?path=lookup`;
 
@@ -28,14 +28,14 @@ function makeLine() {
   if (!tmpl) return document.createElement('div');
   const node = tmpl.content.firstElementChild.cloneNode(true);
   
-  const itemSel = node.querySelector('.itemSelect');
-  const sizeSel = node.querySelector('.sizeSelect');
-  const qtyInput = node.querySelector('.qtyInput');
-  const nameWrap = node.querySelector('.nameWrap');
-  const unitPrice = node.querySelector('.unitPrice');
-  const lineTotal = node.querySelector('.lineTotal');
-  const removeBtn = node.querySelector('.removeBtn');
-  const itemPreview = node.querySelector('.item-preview');
+  const itemSel    = node.querySelector('.itemSelect');
+  const sizeSel    = node.querySelector('.sizeSelect');
+  const qtyInput   = node.querySelector('.qtyInput');
+  const nameWrap   = node.querySelector('.nameWrap');
+  const unitPrice  = node.querySelector('.unitPrice');
+  const lineTotal  = node.querySelector('.lineTotal');
+  const removeBtn  = node.querySelector('.removeBtn');
+  const itemPreview= node.querySelector('.item-preview');
 
   let addNameCb, nameInput;
   if (nameWrap) {
@@ -71,7 +71,6 @@ function makeLine() {
   };
 
   itemSel.addEventListener('change', () => {
-    console.log('--- Item Changed ---'); // Log when the function starts
     const itemIdx = itemSel.value;
     if (sizeSel) sizeSel.innerHTML = '<option value="">Select size…</option>';
     if (nameInput) nameInput.style.display = 'none';
@@ -83,19 +82,11 @@ function makeLine() {
       return;
     }
     const item = PROCESSED_ITEMS[itemIdx];
-    
-    // --- START: DEBUGGING LOGS ---
-    console.log('Selected item object:', item);
-    console.log('Checking for imageUrl property. Value is:', item.imageUrl);
-    // --- END: DEBUGGING LOGS ---
 
     if (nameWrap) nameWrap.style.display = item.allowsName ? 'flex' : 'none';
 
     if (item.imageUrl && itemPreview) {
-      console.log('SUCCESS: imageUrl exists. Creating link.');
       itemPreview.innerHTML = `<a href="${item.imageUrl}" target="_blank" rel="noopener noreferrer">View Item Details</a>`;
-    } else {
-      console.log('INFO: imageUrl is missing or blank. No link will be created.');
     }
 
     if (sizeSel) {
@@ -127,8 +118,6 @@ function makeLine() {
   return node;
 }
 
-// ... The rest of your app.js file (recomputeTotals, submitOrder, etc.) remains the same
-
 function recomputeTotals() {
   let subtotal = 0;
   document.querySelectorAll('.line').forEach(line => {
@@ -138,25 +127,85 @@ function recomputeTotals() {
       if (!isNaN(totalVal)) subtotal += totalVal;
     }
   });
-  const subtotalEl = document.getElementById('subtotal');
+  const subtotalEl   = document.getElementById('subtotal');
   const grandTotalEl = document.getElementById('grandTotal');
-  if (subtotalEl) subtotalEl.textContent = currency(subtotal);
+  if (subtotalEl)   subtotalEl.textContent   = currency(subtotal);
   if (grandTotalEl) grandTotalEl.textContent = currency(subtotal);
+}
+
+/* ---------- Pretty lookup rendering ---------- */
+function renderLookupResult(data) {
+  const printUrl = `${BASE}?path=print_order&id=${encodeURIComponent(data.orderId)}`;
+  const lines = Array.isArray(data.lines) ? data.lines : [];
+
+  const rows = lines.map(l => {
+    const lt = typeof l.lineTotal === 'number'
+      ? l.lineTotal
+      : parseFloat((l.lineTotal || '0').toString().replace(/[^0-9.-]+/g, '')) || 0;
+    return `
+      <tr>
+        <td>${l.sku || ''}</td>
+        <td>${l.item || ''}</td>
+        <td>${l.size || ''}</td>
+        <td style="text-align:right">${l.qty || 0}</td>
+        <td>${l.customName || ''}</td>
+        <td style="text-align:right">${currency(lt)}</td>
+      </tr>
+    `;
+  }).join('');
+
+  let createdStr = '';
+  if (data.created) {
+    try { createdStr = new Date(data.created).toLocaleDateString(); } catch(_) {}
+  }
+
+  return `
+    <div class="card">
+      <div class="row between">
+        <div>
+          <div><strong>Order #:</strong> ${data.orderId}</div>
+          <div><strong>Name:</strong> ${data.first || ''} ${data.last || ''}</div>
+          ${createdStr ? `<div><strong>Date:</strong> ${createdStr}</div>` : ''}
+          <div><strong>Status:</strong> ${data.status || '—'}</div>
+          <div><strong>Total:</strong> ${currency(Number(data.total || 0))}</div>
+        </div>
+        <div class="row end" style="gap:.5rem;">
+          <a class="btn primary" href="${printUrl}" target="_blank" rel="noopener">Print Order</a>
+        </div>
+      </div>
+
+      <table style="width:100%;border-collapse:collapse;margin-top:12px">
+        <thead>
+          <tr>
+            <th>SKU</th>
+            <th>Item</th>
+            <th>Size</th>
+            <th style="text-align:right">Qty</th>
+            <th>Custom Name</th>
+            <th style="text-align:right">Line Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows || '<tr><td colspan="6" class="muted">No lines.</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+  `;
 }
 
 async function submitOrder() {
   const submitBtn = document.getElementById('submitBtn');
   const submitMsg = document.getElementById('submitMsg');
-  const linesDiv = document.getElementById('lines');
+  const linesDiv  = document.getElementById('lines');
   submitBtn.disabled = true;
   submitMsg.textContent = 'Submitting...';
 
   try {
     const payload = {
       firstName: document.getElementById('firstName').value.trim(),
-      lastName: document.getElementById('lastName').value.trim(),
-      email: document.getElementById('email').value.trim(),
-      phone: document.getElementById('phone').value.trim(),
+      lastName:  document.getElementById('lastName').value.trim(),
+      email:     document.getElementById('email').value.trim(),
+      phone:     document.getElementById('phone').value.trim(),
       lines: [],
     };
     document.querySelectorAll('.line').forEach(line => {
@@ -169,9 +218,9 @@ async function submitOrder() {
         sku: item.sku,
         item: item.name,
         size: line.querySelector('.sizeSelect').value,
-        qty: parseInt(line.querySelector('.qtyInput').value || '1'),
+        qty:  parseInt(line.querySelector('.qtyInput').value || '1'),
         customName: (addNameCb && addNameCb.checked && nameInput) ? nameInput.value.trim() : '',
-        lineTotal: parseFloat(line.querySelector('.lineTotal').value.replace(/[^0-9.-]+/g, "")),
+        lineTotal:  parseFloat(line.querySelector('.lineTotal').value.replace(/[^0-9.-]+/g, "")),
       });
     });
     if (!payload.firstName || !payload.lastName || !payload.email) {
@@ -192,7 +241,7 @@ async function submitOrder() {
     const data = await res.json();
     submitMsg.textContent = `Success! Your Order ID is ${data.orderId}.`;
     
-    if(linesDiv) {
+    if (linesDiv) {
       linesDiv.innerHTML = '';
       linesDiv.appendChild(makeLine());
     }
@@ -208,27 +257,33 @@ async function lookupOrder() {
   const id = document.getElementById('lookupId').value.trim();
   const ln = document.getElementById('lookupLast').value.trim();
   const resultEl = document.getElementById('lookupResult');
+  const btn = document.getElementById('lookupBtn');
+
   if (!id || !ln) {
     resultEl.textContent = 'Please enter an Order ID and Last Name.';
     return;
   }
+  if (btn) btn.disabled = true;
   resultEl.textContent = 'Searching...';
+
   try {
     const res = await fetch(`${ENDPOINT_LOOKUP}&orderId=${encodeURIComponent(id)}&last=${encodeURIComponent(ln)}`);
     if (!res.ok) throw new Error('Order not found.');
     const data = await res.json();
-    resultEl.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+    resultEl.innerHTML = renderLookupResult(data);
   } catch (e) {
     resultEl.textContent = `Error: ${e.message}`;
+  } finally {
+    if (btn) btn.disabled = false;
   }
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
   await fetchItems();
-  const linesDiv = document.getElementById('lines');
+  const linesDiv   = document.getElementById('lines');
   const addLineBtn = document.getElementById('addLine');
-  const submitBtn = document.getElementById('submitBtn');
-  const lookupBtn = document.getElementById('lookupBtn');
+  const submitBtn  = document.getElementById('submitBtn');
+  const lookupBtn  = document.getElementById('lookupBtn');
 
   if (linesDiv) {
     linesDiv.appendChild(makeLine());
@@ -244,4 +299,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (lookupBtn) {
     lookupBtn.addEventListener('click', lookupOrder);
   }
+
+  // Enter-to-submit for lookup (no HTML changes needed)
+  ['lookupId', 'lookupLast'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          lookupOrder();
+        }
+      });
+    }
+  });
 });
