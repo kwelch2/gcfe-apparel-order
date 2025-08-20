@@ -12,6 +12,7 @@ async function fetchItems() {
     if (!res.ok) throw new Error(`Failed to fetch: ${res.status}`);
     const rawItems = await res.json();
     PROCESSED_ITEMS = rawItems;
+    console.log('Finished fetching items. Data is ready.');
   } catch (e) {
     console.error("fetchItems error", e);
     alert("Could not load items from server.");
@@ -70,6 +71,7 @@ function makeLine() {
   };
 
   itemSel.addEventListener('change', () => {
+    console.log('--- Item Changed ---'); // Log when the function starts
     const itemIdx = itemSel.value;
     if (sizeSel) sizeSel.innerHTML = '<option value="">Select size…</option>';
     if (nameInput) nameInput.style.display = 'none';
@@ -81,10 +83,19 @@ function makeLine() {
       return;
     }
     const item = PROCESSED_ITEMS[itemIdx];
+    
+    // --- START: DEBUGGING LOGS ---
+    console.log('Selected item object:', item);
+    console.log('Checking for imageUrl property. Value is:', item.imageUrl);
+    // --- END: DEBUGGING LOGS ---
+
     if (nameWrap) nameWrap.style.display = item.allowsName ? 'flex' : 'none';
 
     if (item.imageUrl && itemPreview) {
+      console.log('SUCCESS: imageUrl exists. Creating link.');
       itemPreview.innerHTML = `<a href="${item.imageUrl}" target="_blank" rel="noopener noreferrer">View Item Details</a>`;
+    } else {
+      console.log('INFO: imageUrl is missing or blank. No link will be created.');
     }
 
     if (sizeSel) {
@@ -115,6 +126,8 @@ function makeLine() {
   }
   return node;
 }
+
+// ... The rest of your app.js file (recomputeTotals, submitOrder, etc.) remains the same
 
 function recomputeTotals() {
   let subtotal = 0;
