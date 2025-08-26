@@ -49,10 +49,82 @@ h1, h2, h3 { margin: 8px 0 12px; }
   font-size: 1.1rem;
 }
 
-/* Name add-on */
-.nameWrap { padding-bottom: 10px; }
-.nameWrap .cb-label { display: flex; flex-direction: row; align-items: center; gap: 8px; }
-.nameWrap .nameInput { width: 100%; }
+/* --- ADD NAME STYLES (Consolidated & Updated) --- */
+.nameWrap {
+  padding-bottom: 0; /* Adjusted padding */
+}
+
+/* The bordered box containing the toggle and input */
+.name-input-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: 1px solid #ccc; /* The border to match other inputs */
+  border-radius: 10px;
+  padding: 4px 12px;
+  margin-top: 6px; /* Space from the label text */
+}
+
+/* The text input field for the name */
+.name-input-group .nameInput {
+  flex-grow: 1;
+  border: none;
+  outline: none;
+  padding: 8px 0;
+  font-size: 1.1rem;
+  background: transparent;
+}
+
+/* The label for the toggle switch itself */
+.cb-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+/* The actual checkbox element (hidden) */
+.addNameCb {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* The visual track of the toggle switch */
+.toggle-switch {
+  height: 22px;
+  width: 40px;
+  background-color: #ccc;
+  border-radius: 11px;
+  display: inline-block;
+  position: relative;
+  transition: background-color 0.2s ease;
+  flex-shrink: 0;
+}
+
+/* The circle/thumb of the toggle switch */
+.toggle-switch::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: white;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.2s ease;
+}
+
+/* Style for when the switch is ON */
+.addNameCb:checked + .toggle-switch {
+  background-color: #007bff;
+}
+
+.addNameCb:checked + .toggle-switch::after {
+  transform: translateX(18px);
+}
+/* --- END OF ADD NAME STYLES --- */
 
 /* Price fields */
 .line-grid .unitPrice,
@@ -74,64 +146,4 @@ h1, h2, h3 { margin: 8px 0 12px; }
 @media (max-width: 800px) {
   .grid { grid-template-columns: 1fr; }
   .line-grid { grid-template-columns: 1fr; }
-}
-
-/* Add this to your styles.css file */
-.cb-label {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.addNameCb {
-  opacity: 0; /* Hide the actual checkbox */
-  width: 0;
-  height: 0;
-}
-
-.toggle-switch {
-  height: 22px;
-  width: 40px;
-  background-color: #ccc;
-  border-radius: 11px;
-  display: inline-block;
-  position: relative;
-  margin-right: 12px;
-  transition: background-color 0.2s ease;
-}
-
-.toggle-switch::after {
-  content: '';
-  position: absolute;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background-color: white;
-  top: 2px;
-  left: 2px;
-  transition: transform 0.2s ease;
-}
-
-/* Style for when the switch is ON */
-.addNameCb:checked + .toggle-switch {
-  background-color: #007bff; /* Blue color for 'on' */
-}
-
-.addNameCb:checked + .toggle-switch::after {
-  transform: translateX(18px); /* Move the circle to the right */
-}
-
-/* Add this to your styles.css file */
-
-.name-input-group {
-  display: flex;
-  align-items: center;
-  /* Pushes the input field to fill the available space */
-  width: 100%;
-}
-
-.name-input-group .nameInput {
-  /* Allows the input field to grow */
-  flex-grow: 1;
 }
