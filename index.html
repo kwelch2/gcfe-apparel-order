@@ -85,12 +85,16 @@
         <div class="grid-item">
           <label>Qty <input class="qtyInput" type="number" min="1" value="1"></label>
         </div>
-        <div class="grid-item nameWrap" style="display: none;">
-          <label class="cb-label">
-            <input type="checkbox" class="addNameCb">
-            <span class="toggle-switch"></span> <span>Add Name</span> </label>
+          <div class="grid-item nameWrap" style="display: none;">
+          <label>Add Name
+            <div class="name-input-group">
+              <label class="cb-label">
+                <input type="checkbox" class="addNameCb">
+                <span class="toggle-switch"></span>
+              </label>
+              <input class="nameInput" placeholder="Name on item" style="display: none;">
+            </div>
           </label>
-          <input class="nameInput" placeholder="Name on item" style="display: none;">
         </div>
         <div class="grid-item">
           <label>Unit Price <input class="unitPrice" type="text" readonly></label>

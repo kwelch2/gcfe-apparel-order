@@ -121,3 +121,17 @@ h1, h2, h3 { margin: 8px 0 12px; }
 .addNameCb:checked + .toggle-switch::after {
   transform: translateX(18px); /* Move the circle to the right */
 }
+
+/* Add this to your styles.css file */
+
+.name-input-group {
+  display: flex;
+  align-items: center;
+  /* Pushes the input field to fill the available space */
+  width: 100%;
+}
+
+.name-input-group .nameInput {
+  /* Allows the input field to grow */
+  flex-grow: 1;
+}
