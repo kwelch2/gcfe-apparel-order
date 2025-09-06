@@ -129,10 +129,23 @@ function recomputeTotals() {
       if (!isNaN(totalVal)) subtotal += totalVal;
     }
   });
-  const subtotalEl   = document.getElementById('subtotal');
+
+  // --- New logic for service fee ---
+  const feeCheckbox = document.getElementById('serviceFeeCb');
+  const feeDisplay = document.getElementById('serviceFeeDisplay');
+  let serviceFee = 0;
+  if (feeCheckbox && feeCheckbox.checked) {
+    serviceFee = subtotal * 0.02;
+  }
+  const grandTotal = subtotal + serviceFee;
+  // --- End of new logic ---
+
+  const subtotalEl = document.getElementById('subtotal');
   const grandTotalEl = document.getElementById('grandTotal');
-  if (subtotalEl)   subtotalEl.textContent   = currency(subtotal);
-  if (grandTotalEl) grandTotalEl.textContent = currency(subtotal);
+
+  if (subtotalEl) subtotalEl.textContent = currency(subtotal);
+  if (feeDisplay) feeDisplay.textContent = currency(serviceFee);
+  if (grandTotalEl) grandTotalEl.textContent = currency(grandTotal);
 }
 
 /* ---------- Pretty lookup rendering ---------- */
@@ -327,6 +340,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   if (lookupBtn) {
     lookupBtn.addEventListener('click', lookupOrder);
+  }
+
+  const serviceFeeCb = document.getElementById('serviceFeeCb');
+  if (serviceFeeCb) {
+    serviceFeeCb.addEventListener('change', recomputeTotals);
   }
 
   // Enter-to-submit for lookup (no HTML changes needed)

@@ -42,8 +42,12 @@
         <strong id="subtotal">$0.00</strong>
       </div>
       <div class="row between total-bar">
-        <span class="muted">Discounts/Fees</span>
-        <span id="adj">$0.00</span>
+        <label class="cb-label" style="font-weight: normal;">
+          <input type="checkbox" id="serviceFeeCb">
+          <span class="toggle-switch"></span>
+          <span>Pay with Venmo/CC (adds 2% fee)</span>
+        </label>
+        <strong id="serviceFeeDisplay">$0.00</strong>
       </div>
       <div class="row between total-bar grand">
         <strong>Grand Total</strong>
