@@ -1,23 +1,24 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
+  <base target="_top">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Order Admin</title>
-  <link rel="stylesheet" href="admin.css" />
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin:0; }
-    .hidden { display:none; }
-    .card { border:1px solid #ddd; border-radius:12px; padding:12px; margin:16px 0; }
-    .btn { padding:8px 12px; border:1px solid #ccc; border-radius:10px; background:#f7f7f7; cursor:pointer; }
-    .btn.danger { background:#bf2d2d; color:#fff; border-color:#bf2d2d; }
-    .table { width:100%; border-collapse:collapse; }
-    .table th, .table td { padding:8px 10px; border-bottom:1px solid #eee; text-align:left; }
-    .right { text-align:right; }
-    .badge { padding:2px 8px; border:1px solid #ddd; border-radius:999px; }
-    .badge.paid { background:#e8f6e8; border-color:#9ad49a; }
-    .badge.unpaid { background:#fff1f1; border-color:#f1b3b3; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 0; background: #f7f7f7; }
+    main { max-width: 1100px; margin: 0 auto; padding: 16px; }
+    .hidden { display: none; }
+    .card { background: #fff; border: 1px solid #ddd; border-radius: 12px; padding: 12px; margin: 16px 0; }
+    .btn { padding: 8px 12px; border: 1px solid #ccc; border-radius: 10px; background: #f7f7f7; cursor: pointer; font-weight: 600; }
+    .btn.danger { background: #bf2d2d; color: #fff; border-color: #bf2d2d; }
+    .table { width: 100%; border-collapse: collapse; }
+    .table th, .table td { padding: 8px 10px; border-bottom: 1px solid #eee; text-align: left; }
+    .right { text-align: right; }
+    .badge { padding: 2px 8px; border-radius: 999px; }
+    .badge.paid { background: #e8f6e8; border-color: #9ad49a; }
+    .badge.unpaid { background: #fff1f1; border-color: #f1b3b3; }
   </style>
 </head>
 <body>
@@ -27,33 +28,22 @@
     <div id="gsi" style="display:inline-block;"></div>
   </section>
 
-  <main id="app" class="hidden" style="max-width:1100px;margin:0 auto;padding:16px;">
+  <main id="app" class="hidden">
     <h1>Order Admin Dashboard</h1>
 
     <section class="card">
-      <h3>Connection</h3>
-      <label>Apps Script Base URL (ends with <code>/exec</code>)</label>
-      <input id="baseUrl" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:8px" placeholder="https://script.google.com/macros/s/AKfy.../exec">
-      <div style="margin-top:10px">
-        <button id="saveConn" class="btn">Save</button>
-        <button id="testConn" class="btn">Test</button>
-        <span id="connMsg" style="margin-left:8px;color:#555"></span>
-      </div>
-      <div style="margin-top:10px">
-        <button id="lockBtn" class="btn danger">Lock Orders</button>
-        <button id="unlockBtn" class="btn">Unlock Orders</button>
-        <span id="lockState" style="margin-left:8px;color:#555"></span>
-      </div>
+      <h3>Actions</h3>
+      <button id="lockBtn" class="btn danger">Lock Orders</button>
+      <button id="unlockBtn" class="btn">Unlock Orders</button>
+      <span id="lockState" style="margin-left:8px;color:#555"></span>
     </section>
 
     <section class="card">
-      <h3>Search</h3>
+      <h3>Search Orders</h3>
       <div>
-        <input id="query" placeholder="Order ID (A123456) or last name" style="padding:8px;border:1px solid #ccc;border-radius:8px">
+        <input id="query" placeholder="Order ID or last name" style="padding:8px;border:1px solid #ccc;border-radius:8px">
         <select id="paidFilter" style="padding:8px;border:1px solid #ccc;border-radius:8px">
-          <option value="">All</option>
-          <option value="paid">Paid</option>
-          <option value="unpaid">Unpaid</option>
+          <option value="">All</option> <option value="paid">Paid</option> <option value="unpaid">Unpaid</option>
         </select>
         <input id="fromDate" type="date" style="padding:8px;border:1px solid #ccc;border-radius:8px">
         <input id="toDate" type="date" style="padding:8px;border:1px solid #ccc;border-radius:8px">
@@ -78,19 +68,152 @@
         <div><strong>Contact:</strong> <span class="contact"></span></div>
         <div><strong>Email:</strong> <span class="email"></span> — <strong>Phone:</strong> <span class="phone"></span></div>
         <table class="table" style="margin-top:6px">
-          <thead>
-            <tr><th>SKU</th><th>Item</th><th>Size</th><th>Qty</th><th>Custom Name</th><th>Unit</th><th>Line</th></tr>
-          </thead>
+          <thead><tr><th>SKU</th><th>Item</th><th>Size</th><th>Qty</th><th>Custom Name</th><th>Line Total</th></tr></thead>
           <tbody class="lines"></tbody>
         </table>
-        <div style="margin-top:8px">
-          <a data-view target="_blank" class="btn">View (public)</a>
-          <button data-print class="btn">Print Pack Slip</button>
-        </div>
       </td>
     </tr>
   </template>
 
-  <script src="admin.js"></script>
+  <script>
+    const GIS_CLIENT_ID = '841013736027-qvvar311ihlv00k08jjpiomn4b0ajj0j.apps.googleusercontent.com'; // Your Google OAuth Client ID
+    let ID_TOKEN = '';
+
+    /******** UTILITIES ********/
+    function currency(n) { return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(n || 0); }
+    function handleFailure(err) { alert(err.message || err); }
+
+    /******** STATE & RENDERING ********/
+    function updateLockState() {
+      google.script.run.withSuccessHandler(state => {
+        document.getElementById('lockState').textContent = state.ordersLocked ? 'Currently: LOCKED' : 'Currently: OPEN';
+      }).withFailureHandler(handleFailure).adminGetState(ID_TOKEN);
+    }
+
+    function renderResults(list) {
+      const box = document.getElementById('results');
+      if (!list || !list.length) { box.innerHTML = '<p style="color:#555">No results.</p>'; return; }
+      const thead = `<thead><tr><th>Order ID</th><th>Name</th><th class="right">Total</th><th>Created</th><th>Status</th><th>Actions</th></tr></thead>`;
+      let tbody = '<tbody>';
+      list.forEach(r => {
+        const paid = !!r.paid;
+        const badge = paid ? '<span class="badge paid">PAID</span>' : '<span class="badge unpaid">UNPAID</span>';
+        tbody += `<tr data-id="${r.orderId}" data-last="${String(r.last||'').toLowerCase()}">
+          <td>${r.orderId}</td> <td>${r.last}, ${r.first}</td> <td class="right">${currency(r.total||0)}</td>
+          <td>${new Date(r.created).toLocaleString()}</td> <td>${badge}</td>
+          <td><button class="btn" data-toggle>${paid?'Mark Unpaid':'Mark Paid'}</button> <button class="btn" data-expand>Details</button></td>
+        </tr>`;
+      });
+      tbody += '</tbody>';
+      box.innerHTML = `<table class="table">${thead}${tbody}</table>`;
+    }
+
+    function buildDetailRow(o) {
+      const tmpl = document.getElementById('detailTemplate');
+      const row = tmpl.content.firstElementChild.cloneNode(true);
+      row.querySelector('.contact').textContent = `${o.last}, ${o.first}`;
+      row.querySelector('.email').textContent = o.email || '';
+      row.querySelector('.phone').textContent = o.phone || '';
+      const tbody = row.querySelector('.lines');
+      (o.lines || []).forEach(l => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${l.sku||''}</td><td>${l.item||''}</td><td>${l.size||''}</td><td>${l.qty||0}</td><td>${l.customName||''}</td><td>${currency(l.lineTotal||0)}</td>`;
+        tbody.appendChild(tr);
+      });
+      return row;
+    }
+
+    /******** GOOGLE SIGN-IN ********/
+    function onSignInSuccess(response) {
+      ID_TOKEN = response.credential;
+      document.getElementById('loginMsg').textContent = 'Verifying...';
+
+      google.script.run.withSuccessHandler(data => {
+        if (data && data.allowed) {
+          document.getElementById('login').classList.add('hidden');
+          document.getElementById('app').classList.remove('hidden');
+          updateLockState();
+        } else {
+          document.getElementById('loginMsg').textContent = 'Access denied for this Google account.';
+        }
+      }).withFailureHandler(err => {
+        document.getElementById('loginMsg').textContent = 'Login check failed: ' + (err.message || 'unknown');
+      }).adminVerifyLogin(ID_TOKEN);
+    }
+
+    function renderGsiButton() {
+      if (window.google && google.accounts && google.accounts.id) {
+        google.accounts.id.initialize({ client_id: GIS_CLIENT_ID, callback: onSignInSuccess });
+        google.accounts.id.renderButton(document.getElementById('gsi'), { theme: 'outline', size: 'large' });
+      } else {
+        setTimeout(renderGsiButton, 200);
+      }
+    }
+
+    /******** EVENT LISTENERS ********/
+    document.addEventListener('DOMContentLoaded', () => {
+      // Lock/Unlock Buttons
+      document.getElementById('lockBtn').addEventListener('click', () => {
+        google.script.run.withSuccessHandler(updateLockState).withFailureHandler(handleFailure).adminSetLock(ID_TOKEN, true);
+      });
+      document.getElementById('unlockBtn').addEventListener('click', () => {
+        google.script.run.withSuccessHandler(updateLockState).withFailureHandler(handleFailure).adminSetLock(ID_TOKEN, false);
+      });
+
+      // Search and Results Table
+      document.getElementById('searchBtn').addEventListener('click', () => {
+        const q = document.getElementById('query').value.trim();
+        const pf = document.getElementById('paidFilter').value;
+        const from = document.getElementById('fromDate').value;
+        const to = document.getElementById('toDate').value;
+        google.script.run.withSuccessHandler(out => {
+          renderResults(out.results);
+        }).withFailureHandler(handleFailure).adminSearch(ID_TOKEN, q, pf, from, to);
+      });
+
+      document.getElementById('results').addEventListener('click', (e) => {
+        const button = e.target.closest('button');
+        if (!button) return;
+        const tr = button.closest('tr');
+        const orderId = tr.dataset.id;
+
+        if (button.dataset.toggle != null) {
+          const isPaid = tr.querySelector('.badge.paid') != null;
+          google.script.run.withSuccessHandler(() => {
+            document.getElementById('searchBtn').click(); // Refresh search
+          }).withFailureHandler(handleFailure).adminTogglePaid(ID_TOKEN, orderId, !isPaid);
+        }
+
+        if (button.dataset.expand != null) {
+          const nextRow = tr.nextElementSibling;
+          if (nextRow && nextRow.classList.contains('detail-row')) {
+            nextRow.remove();
+          } else {
+            google.script.run.withSuccessHandler(orderData => {
+              const detailRow = buildDetailRow(orderData);
+              tr.insertAdjacentElement('afterend', detailRow);
+            }).withFailureHandler(handleFailure).adminLookup(orderId, tr.dataset.last);
+          }
+        }
+      });
+
+      // Totals & Export
+      document.getElementById('refreshTotals').addEventListener('click', () => {
+        google.script.run.withSuccessHandler(p => {
+          document.getElementById('paidSum').textContent = 'Sum: ' + currency(p.sum || 0);
+          document.getElementById('paidCount').textContent = 'Count: ' + (p.count || 0);
+          document.getElementById('totalsBreakdown').textContent = (p.byLast || []).map(x => `${x.last}: ${currency(x.total)}`).join(' | ');
+        }).withFailureHandler(handleFailure).adminPaidTotals(ID_TOKEN);
+      });
+
+      document.getElementById('exportPaid').addEventListener('click', () => {
+        google.script.run.withSuccessHandler(info => {
+          window.open(info.url, '_blank');
+        }).withFailureHandler(handleFailure).adminExportPaidCsv(ID_TOKEN);
+      });
+
+      renderGsiButton();
+    });
+  </script>
 </body>
 </html>
