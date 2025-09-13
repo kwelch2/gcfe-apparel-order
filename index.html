@@ -89,17 +89,32 @@
         <div class="grid-item">
           <label>Qty <input class="qtyInput" type="number" min="1" value="1"></label>
         </div>
-          <div class="grid-item nameWrap" style="display: none;">
-          <label>Add Name
-            <div class="name-input-group">
-              <label class="cb-label">
-                <input type="checkbox" class="addNameCb">
-                <span class="toggle-switch"></span>
-              </label>
-              <input class="nameInput" placeholder="Name on item" style="display: none;">
-            </div>
-          </label>
+          <div class="grid-item nameWrap" style="display:none;">
+            <label style="display:block; font-weight:600; margin-bottom:6px;">Personalize (Add Name)</label>
+
+          <div class="row start" style="gap:8px; align-items:center;">
+            <label class="cb-label" title="Toggle name/title personalization">
+              <input type="checkbox" class="addNameCb">
+              <span class="toggle-switch"></span>
+            </label>
+            <span class="muted small">Include name and/or title on this item.</span>
+          </div>
+
+          <div class="name-fields" style="display:none; margin-top:10px;">
+            <label class="stack">
+              <span class="small muted">Line 1 (Name)</span>
+              <input class="line1Input" maxlength="22" placeholder="e.g., J. SMITH">
+            </label>
+            <label class="stack">
+              <span class="small muted">Line 2 (Title)</span>
+              <input class="line2Input" maxlength="28" placeholder="e.g., CAPTAIN">
+            </label>
+            <p class="small muted" style="grid-column:1/-1; margin:4px 0 0;">
+              Tip: keep it short—uppercase prints best. Line 2 is optional.
+            </p>
+          </div>
         </div>
+
         <div class="grid-item">
           <label>Unit Price <input class="unitPrice" type="text" readonly></label>
         </div>

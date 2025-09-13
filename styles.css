@@ -133,6 +133,27 @@ h1, h2, h3 { margin: 8px 0 12px; }
 /* Item link under the selector */
 .item-preview { padding-top: 8px; font-size: 0.9rem; }
 
+/* Name/Title personalization */
+.name-fields {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.name-fields .stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+@media (max-width: 700px) {
+  .name-fields { grid-template-columns: 1fr; }
+}
+
+/* Small utilities that match your existing theme */
+.small { font-size: 0.9rem; }
+.muted { color: var(--muted, #666); }
+
 /* Lookup table polish */
 #lookupResult table th,
 #lookupResult table td { border: 1px solid #ddd; padding: 8px; }
