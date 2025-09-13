@@ -39,11 +39,14 @@ function makeLine() {
   const removeBtn  = node.querySelector('.removeBtn');
   const itemPreview= node.querySelector('.item-preview');
 
-  let addNameCb, nameInput;
-  if (nameWrap) {
-    addNameCb = nameWrap.querySelector('.addNameCb');
-    nameInput = nameWrap.querySelector('.nameInput');
-  }
+  let addNameCb, nameFields, line1Input, line2Input;
+if (nameWrap) {
+  addNameCb  = nameWrap.querySelector('.addNameCb');
+  nameFields = nameWrap.querySelector('.name-fields');
+  line1Input = nameWrap.querySelector('.line1Input');
+  line2Input = nameWrap.querySelector('.line2Input');
+}
+
 
   if (!itemSel) return node;
 
@@ -75,17 +78,24 @@ function makeLine() {
   itemSel.addEventListener('change', () => {
     const itemIdx = itemSel.value;
     if (sizeSel) sizeSel.innerHTML = '<option value="">Select size…</option>';
-    if (nameInput) nameInput.style.display = 'none';
-    if (addNameCb) addNameCb.checked = false;
-    if (itemPreview) itemPreview.innerHTML = '';
-    if (itemIdx === '') {
-      if (nameWrap) nameWrap.style.display = 'none';
-      recompute();
-      return;
-    }
-    const item = PROCESSED_ITEMS[itemIdx];
+if (itemPreview) itemPreview.innerHTML = '';
 
-    if (nameWrap) nameWrap.style.display = item.allowsName ? 'flex' : 'none';
+/* reset name UI */
+if (addNameCb) addNameCb.checked = false;
+if (nameFields) nameFields.style.display = 'none';
+if (line1Input) line1Input.value = '';
+if (line2Input) line2Input.value = '';
+
+if (itemIdx === '') {
+  if (nameWrap) nameWrap.style.display = 'none';
+  recompute();
+  return;
+}
+const item = PROCESSED_ITEMS[itemIdx];
+
+/* show/hide whole personalization block based on allowsName */
+if (nameWrap) nameWrap.style.display = item.allowsName ? '' : 'none';
+
 
     if (item.imageUrl && itemPreview) {
       itemPreview.innerHTML = `<a href="${item.imageUrl}" target="_blank" rel="noopener noreferrer">View Item Details</a>`;
@@ -103,12 +113,41 @@ function makeLine() {
     recompute();
   });
 
-  if (addNameCb) {
-    addNameCb.addEventListener('change', () => {
-      if (nameInput) nameInput.style.display = addNameCb.checked ? 'block' : 'none';
-      recompute();
-    });
-  }
+  function escapeHtml(s){
+  return String(s || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function renderNamePreview(){
+  const l1 = (line1Input?.value || '').trim();
+  const l2 = (line2Input?.value || '').trim();
+  if (!itemPreview) return;
+  if (!l1 && !l2) { itemPreview.innerHTML = ''; return; }
+  itemPreview.innerHTML = `
+    <div style="margin-top:6px;padding:8px;border:1px dashed #ddd;border-radius:8px;">
+      <div class="small" style="font-weight:600;">Personalization Preview</div>
+      <div style="line-height:1.3;margin-top:4px;">
+        ${l1 ? `<div>${escapeHtml(l1)}</div>` : ''}
+        ${l2 ? `<div class="muted small">${escapeHtml(l2)}</div>` : ''}
+      </div>
+    </div>`;
+}
+
+if (addNameCb) {
+  addNameCb.addEventListener('change', () => {
+    if (!nameFields) return;
+    const on = addNameCb.checked;
+    nameFields.style.display = on ? '' : 'none';
+    if (!on) {
+      if (line1Input) line1Input.value = '';
+      if (line2Input) line2Input.value = '';
+    }
+    renderNamePreview();
+    recompute();
+  });
+}
+
+line1Input?.addEventListener('input', renderNamePreview);
+line2Input?.addEventListener('input', renderNamePreview);
+
   if (sizeSel) sizeSel.addEventListener('change', recompute);
   if (qtyInput) qtyInput.addEventListener('input', recompute);
   if (removeBtn) {
@@ -154,20 +193,25 @@ function renderLookupResult(data) {
   const lines = Array.isArray(data.lines) ? data.lines : [];
 
   const rows = lines.map(l => {
-    const lt = typeof l.lineTotal === 'number'
-      ? l.lineTotal
-      : parseFloat((l.lineTotal || '0').toString().replace(/[^0-9.-]+/g, '')) || 0;
-    return `
-      <tr>
-        <td>${l.sku || ''}</td>
-        <td>${l.item || ''}</td>
-        <td>${l.size || ''}</td>
-        <td style="text-align:right">${l.qty || 0}</td>
-        <td>${l.customName || ''}</td>
-        <td style="text-align:right">${currency(lt)}</td>
-      </tr>
-    `;
-  }).join('');
+  const lt = typeof l.lineTotal === 'number'
+    ? l.lineTotal
+    : parseFloat((l.lineTotal || '0').toString().replace(/[^0-9.-]+/g, '')) || 0;
+
+  const nameCol = (l.line1 || l.line2)
+    ? `${l.line1 || ''}${l.line1 && l.line2 ? ' — ' : ''}${l.line2 || ''}`
+    : (l.customName || '');
+
+  return `
+    <tr>
+      <td>${l.sku || ''}</td>
+      <td>${l.item || ''}</td>
+      <td>${l.size || ''}</td>
+      <td style="text-align:right">${l.qty || 0}</td>
+      <td>${nameCol}</td>
+      <td style="text-align:right">${currency(lt)}</td>
+    </tr>
+  `;
+}).join('');
 
   let createdStr = '';
   if (data.created) {
@@ -227,16 +271,23 @@ async function submitOrder() {
       const itemIdx = line.querySelector('.itemSelect').value;
       if (itemIdx === '') return;
       const item = PROCESSED_ITEMS[itemIdx];
-      const nameInput = line.querySelector('.nameInput');
-      const addNameCb = line.querySelector('.addNameCb');
-      payload.lines.push({
-        sku: item.sku,
-        item: item.name,
-        size: line.querySelector('.sizeSelect').value,
-        qty:  parseInt(line.querySelector('.qtyInput').value || '1'),
-        customName: (addNameCb && addNameCb.checked && nameInput) ? nameInput.value.trim() : '',
-        lineTotal:  parseFloat(line.querySelector('.lineTotal').value.replace(/[^0-9.-]+/g, "")),
-      });
+      const addNameCb  = line.querySelector('.addNameCb');
+const line1Input = line.querySelector('.line1Input');
+const line2Input = line.querySelector('.line2Input');
+
+payload.lines.push({
+  sku: item.sku,
+  item: item.name,
+  size: line.querySelector('.sizeSelect').value,
+  qty:  parseInt(line.querySelector('.qtyInput').value || '1'),
+  // NEW fields:
+  personalize: !!(addNameCb && addNameCb.checked),
+  line1: (addNameCb && addNameCb.checked && line1Input) ? line1Input.value.trim() : '',
+  line2: (addNameCb && addNameCb.checked && line2Input) ? line2Input.value.trim() : '',
+  // keep sending numeric total:
+  lineTotal: parseFloat(line.querySelector('.lineTotal').value.replace(/[^0-9.-]+/g, "")),
+});
+
     });
     if (!payload.firstName || !payload.lastName || !payload.email) {
       throw new Error('Please fill out all contact fields.');
